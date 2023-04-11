@@ -129,6 +129,7 @@ class Sniper:
                     total_errors += 1
                  else:
                    print(f"Purchase successful. Response: {json_response}.")
+                   self.buys += 1
             
         while True:
             t0 = time.time()
