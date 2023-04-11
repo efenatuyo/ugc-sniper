@@ -6,3 +6,6 @@ bored to explain how it works on github join my serv instead https://discord.gg/
 
 no proxies needed.
 multi cookies soon.
+
+
+this script can snipe any ugc not like other ones that can only do free ones
