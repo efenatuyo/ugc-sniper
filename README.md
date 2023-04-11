@@ -11,3 +11,5 @@ multi cookies soon.
 this script can snipe any ugc not like other ones that can only do free ones
 
 maybe limited sniper soon
+
+next update 5 stars
