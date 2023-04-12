@@ -12,6 +12,8 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 class Sniper:
     def __init__(self) -> None:
+        self.webhookEnabled = True if bool(config["configWebhook"]["on"]) else False
+        self.webhookUrl = config["configWebhook"]["webhook"] if self.webhookEnabled else None
         self.webhook = config['configWebhook']["webhook"]
         self.accounts = None
         self.items = self._load_items()
@@ -105,7 +107,6 @@ class Sniper:
                 x_token (str): The X-CSRF-TOKEN associated with the user's account.
          """
         
-         print("Initiating purchase of limited item...")
         
          data = {
               "collectibleItemId": item_id,
@@ -150,6 +151,13 @@ class Sniper:
                     else:
                        print(f"Purchase successful. Response: {json_response}.")
                        self.buys += 1
+                       if self.webhookEnabled:
+                          embed = {
+                               'title': f'New UGC item {item_id} bought',
+                               'description': f'Price: {price}\nBuyer ID: {user_id}\nSeller ID: {creator_id}\nProduct ID: {product_id}',
+                               'color': 0x00ff00
+                                  }
+                          requests.post(self.webhookUrl, json={'embeds': [embed]})
                        
                        
         while True:
