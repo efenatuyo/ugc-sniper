@@ -12,7 +12,7 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 class Sniper:
     def __init__(self) -> None:
-        self.webhookEnabled = True if bool(config["configWebhook"]["on"]) else False
+        self.webhookEnabled = True if bool(config["configWebhook"]["enabled"] == "on") else False
         self.webhookUrl = config["configWebhook"]["webhook"] if self.webhookEnabled else None
         self.webhook = config['configWebhook']["webhook"]
         self.accounts = None
