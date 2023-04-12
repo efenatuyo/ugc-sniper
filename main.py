@@ -223,7 +223,7 @@ class Sniper:
                            continue
                        await asyncio.sleep(1)
                 t1 = asyncio.get_event_loop().time()
-                self.last_time = t1 - t0
+                self.last_time = round(t1 - t0, 3)
                 await asyncio.sleep(1.5)
 
 sniper = Sniper()
