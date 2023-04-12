@@ -201,7 +201,7 @@ class Sniper:
                     jsonr = response.json()
                     json_response = jsonr["data"][0]
                     if json_response.get("priceStatus") != "Off Sale" and json_response.get('unitsAvailableForConsumption') > 0:
-                       productid_response = await requests.post("https://apis.roblox.com/marketplace-items/v1/items/details",
+                       productid_response = requests.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                      json={"itemIds": [json_response["collectibleItemId"]]},
                                      headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"]},
                                      cookies={".ROBLOSECURITY": self.accounts[str(random.randint(1, len(self.accounts)))]["cookie"]})
