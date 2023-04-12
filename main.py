@@ -8,8 +8,6 @@ try:
   import requests
   import configparser
   from colorama import Fore, Back, Style
-  import ssl
-  from aiohttp import ClientSession, TCPConnector
   import aiohttp
 except ModuleNotFoundError:
     print("Modules not installed proberly installing now")
@@ -18,7 +16,7 @@ except ModuleNotFoundError:
     os.system("pip install configparser")
     os.system("pip install colorama")
 
-connector = TCPConnector(ssl=False)
+
 config = configparser.ConfigParser()
 config.read('config.ini')
 class Sniper:
@@ -76,7 +74,7 @@ class Sniper:
             return [line.strip() for line in f.readlines()]
             
     async def _get_user_id(self, cookie) -> str:
-        async with aiohttp.ClientSession(connector=connector, cookies={".ROBLOSECURITY": cookie}) as session:
+        async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as session:
             async with session.get("https://users.roblox.com/v1/users/authenticated") as response:
                 data = await response.json()
                 return data["id"]
@@ -89,7 +87,7 @@ class Sniper:
         print(Style.BRIGHT + f"――――――――――――――――――――――――――――――――――――[Last Speed: {Fore.YELLOW}{Style.BRIGHT}{self.last_time}{Fore.WHITE}{Style.BRIGHT}]――――――――――――――――――――――――――――――――――――")
             
     async def _get_xcsrf_token(self, cookie) -> dict:
-        async with aiohttp.ClientSession(connector=connector, cookies={".ROBLOSECURITY": cookie}) as session:
+        async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as session:
             async with session.post("https://accountsettings.roblox.com/v1/email") as response:
                 xcsrf_token = response.headers.get("x-csrf-token")
                 if xcsrf_token is None:
@@ -142,7 +140,7 @@ class Sniper:
          }
         
          total_errors = 0
-         async with aiohttp.ClientSession(connector=connector) as session:
+         async with aiohttp.ClientSession() as session:
             while True:
                 if total_errors >= 10:
                     print("Too many errors encountered. Aborting purchase.")
@@ -190,7 +188,7 @@ class Sniper:
             
 
             for currentItem in self.items:
-                async with aiohttp.ClientSession(connector=connector) as session:
+                async with aiohttp.ClientSession() as session:
                     
                  async with session.post("https://catalog.roblox.com/v1/catalog/items/details",
                             json={"items": [{"itemType": "Asset", "id": int(currentItem)}]},
