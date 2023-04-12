@@ -1,1 +1,2 @@
-only one cookie
+cookie1
+cookie2
