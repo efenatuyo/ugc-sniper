@@ -80,7 +80,7 @@ class Sniper:
                 return data["id"]
     
     def _print_stats(self) -> None:
-        print("Version: 3.5")
+        print("Version: 3.6")
         print(Fore.GREEN + Style.BRIGHT + self.title)
         print(Style.BRIGHT + f"――――――――――――――――――――――――――――――――――――――[Total buys: {Fore.GREEN}{Style.BRIGHT}{self.buys}{Fore.WHITE}{Style.BRIGHT}]――――――――――――――――――――――――――――――――――――――")
         print(Style.BRIGHT + f"―――――――――――――――――――――――――――――――――――[Total ratelimits: {Fore.RED}{Style.BRIGHT}{self.total_ratelimits}{Fore.WHITE}{Style.BRIGHT}]―――――――――――――――――――――――――――――――――――")
@@ -161,7 +161,7 @@ class Sniper:
             
                     try:
                       json_response = await response.json()
-                    except json.decoder.JSONDecodeError as e:
+                    except aiohttp.ContentTypeError as e:
                       self.errors += 1
                       print(f"JSON decode error encountered: {e}. Retrying purchase...")
                       total_errors += 1
