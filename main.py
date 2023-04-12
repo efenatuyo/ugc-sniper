@@ -49,7 +49,7 @@ class Sniper:
                 my_dict[str(i+1)] = {"cookie": line}
             return my_dict
         
-    def _load_items(self) -> list:
+    def _load_items(self) -> list[str]:
         with open('limiteds.txt', 'r') as f:
             return [line.strip() for line in f.readlines()]
             
@@ -185,7 +185,7 @@ class Sniper:
                        continue
                     
                     json_response = jsonr["data"][0]
-                    if json_response["priceStatus"] != "Off Sale" and json_response['unitsAvailableForConsumption'] > 0:
+                    if json_response.get("priceStatus") != "Off Sale" and json_response['unitsAvailableForConsumption'] > 0:
                        productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                      json={"itemIds": [json_response["collectibleItemId"]]},
                                      headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"]},
