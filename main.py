@@ -42,6 +42,7 @@ class Sniper:
         self.request_method = 2
         self.total_ratelimits = 0
         self.last_time = 0
+        self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"  
         self._setup_accounts()
         
@@ -79,9 +80,11 @@ class Sniper:
                 return data["id"]
     
     def _print_stats(self) -> None:
+        print("Version: 3.5")
         print(Fore.GREEN + Style.BRIGHT + self.title)
         print(Style.BRIGHT + f"――――――――――――――――――――――――――――――――――――――[Total buys: {Fore.GREEN}{Style.BRIGHT}{self.buys}{Fore.WHITE}{Style.BRIGHT}]――――――――――――――――――――――――――――――――――――――")
         print(Style.BRIGHT + f"―――――――――――――――――――――――――――――――――――[Total ratelimits: {Fore.RED}{Style.BRIGHT}{self.total_ratelimits}{Fore.WHITE}{Style.BRIGHT}]―――――――――――――――――――――――――――――――――――")
+        print(Style.BRIGHT + f"―――――――――――――――――――――――――――――――――――[Total errors: {Fore.RED}{Style.BRIGHT}{self.errors}{Fore.WHITE}{Style.BRIGHT}]―――――――――――――――――――――――――――――――――――")
         print(Style.BRIGHT + f"――――――――――――――――――――――――――――――――――[Total price checks: {Fore.YELLOW}{Style.BRIGHT}{self.checks}{Fore.WHITE}{Style.BRIGHT}]――――――――――――――――――――――――――――――――――")
         print(Style.BRIGHT + f"――――――――――――――――――――――――――――――――――――[Last Speed: {Fore.YELLOW}{Style.BRIGHT}{self.last_time}{Fore.WHITE}{Style.BRIGHT}]――――――――――――――――――――――――――――――――――――")
             
@@ -159,11 +162,13 @@ class Sniper:
                     try:
                       json_response = await response.json()
                     except json.decoder.JSONDecodeError as e:
+                      self.errors += 1
                       print(f"JSON decode error encountered: {e}. Retrying purchase...")
                       total_errors += 1
                       continue
 
                     if not json_response["purchased"]:
+                       self.errors += 1
                        print(f"Purchase failed. Response: {json_response}. Retrying purchase...")
                        total_errors += 1
                     else:
@@ -211,6 +216,8 @@ class Sniper:
                        
                        
                        if productid_response.status == 404:
+                           print("Product not found")
+                           self.errors += 1
                            continue
                        
                        try:
@@ -218,6 +225,7 @@ class Sniper:
                            productid_data = da[0]
                        except json.JSONDecodeError as e:
                            print(f'Error decoding JSON: {e}')
+                           self.errors += 1
                            continue                     
                        coroutines = []
                        for i in self.accounts:
