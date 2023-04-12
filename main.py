@@ -208,8 +208,13 @@ class Sniper:
                                      json={"itemIds": [json_response["collectibleItemId"]]},
                                      headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"]},
                                      cookies={".ROBLOSECURITY": self.accounts[str(random.randint(1, len(self.accounts)))]["cookie"]})
-                       productid_data = await productid_response.json()
-                       try:                          
+                       productid_data = await productid_response.text()
+                       try:
+                           json_response = json.loads(productid_data)
+                       except json.JSONDecodeError as e:
+                           print(f'Error decoding JSON: {e}')
+                           continue  
+                       try:                     
                           coroutines = []
                           for i in self.accounts:
                               coroutines.append(buy_item(item_id = json_response["collectibleItemId"], price = json_response['price'], user_id = self.accounts[i]["id"], creator_id = json_response['creatorTargetId'], product_id = productid_data, cookie = self.accounts[i]["cookie"], x_token = self.account[i]["xcsrf_token"]))
