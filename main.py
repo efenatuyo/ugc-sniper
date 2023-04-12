@@ -7,6 +7,7 @@ import asyncio
 import random
 import requests
 import configparser
+from colorama import Fore, Back, Style
 
 config = configparser.ConfigParser()
 config.read('config.ini')
