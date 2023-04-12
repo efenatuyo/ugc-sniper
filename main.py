@@ -8,9 +8,11 @@ try:
   import requests
   import configparser
   from colorama import Fore, Back, Style
+  import aiohttp
 except ModuleNotFoundError:
     print("Modules not installed proberly installing now")
     os.system("pip install requests")
+    os.system("pip install aiohttp")
     os.system("pip install configparser")
     os.system("pip install colorama")
 
@@ -66,15 +68,14 @@ class Sniper:
                 my_dict[str(i+1)] = {"cookie": line}
             return my_dict
         
-    def _load_items(self) -> list:
+    def _load_items(self) -> list[str]:
         with open('limiteds.txt', 'r') as f:
             return [line.strip() for line in f.readlines()]
             
     async def _get_user_id(self, cookie) -> str:
-                response = requests.get("https://users.roblox.com/v1/users/authenticated", cookies={".ROBLOSECURITY": cookie})
-                data = response.json()
-                if not "id" in data:
-                    raise Exception("Couldn't find user id check your cookie for misspelled information.")
+        async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as session:
+            async with session.get("https://users.roblox.com/v1/users/authenticated") as response:
+                data = await response.json()
                 return data["id"]
     
     def _print_stats(self) -> None:
@@ -85,7 +86,8 @@ class Sniper:
         print(Style.BRIGHT + f"――――――――――――――――――――――――――――――――――――[Last Speed: {Fore.YELLOW}{Style.BRIGHT}{self.last_time}{Fore.WHITE}{Style.BRIGHT}]――――――――――――――――――――――――――――――――――――")
             
     async def _get_xcsrf_token(self, cookie) -> dict:
-                response = requests.post("https://accountsettings.roblox.com/v1/email", cookies={".ROBLOSECURITY": cookie})
+        async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as session:
+            async with session.post("https://accountsettings.roblox.com/v1/email") as response:
                 xcsrf_token = response.headers.get("x-csrf-token")
                 if xcsrf_token is None:
                     raise Exception("An error occurred while getting the X-CSRF-TOKEN. "
@@ -137,30 +139,34 @@ class Sniper:
          }
         
          total_errors = 0
-         while True:
+         async with aiohttp.ClientSession() as session:
+            while True:
                 if total_errors >= 10:
                     print("Too many errors encountered. Aborting purchase.")
                     return
                  
                 data["idempotencyKey"] = str(uuid.uuid4())
-                response = await requests.post(f"https://apis.roblox.com/marketplace-sales/v1/item/{item_id}/purchase-item", json=data, headers={"x-csrf-token": x_token}, cookies={".ROBLOSECURITY": cookie})
+                async with session.post(f"https://apis.roblox.com/marketplace-sales/v1/item/{item_id}/purchase-item",
+                        json=data,
+                        headers={"x-csrf-token": x_token},
+                        cookies={".ROBLOSECURITY": cookie}) as response:
                     
-                if response.status_code == 429:
+                    if response.status == 429:
                        print("Ratelimit encountered. Retrying purchase in 0.5 seconds...")
                        await asyncio.sleep(0.5)
                        continue
             
-                try:
+                    try:
                       json_response = await response.json()
-                except json.decoder.JSONDecodeError as e:
+                    except json.decoder.JSONDecodeError as e:
                       print(f"JSON decode error encountered: {e}. Retrying purchase...")
                       total_errors += 1
                       continue
 
-                if not json_response["purchased"]:
+                    if not json_response["purchased"]:
                        print(f"Purchase failed. Response: {json_response}. Retrying purchase...")
                        total_errors += 1
-                else:
+                    else:
                        print(f"Purchase successful. Response: {json_response}.")
                        self.buys += 1
                        if self.Enabled:
@@ -181,46 +187,42 @@ class Sniper:
             
 
             for currentItem in self.items:
-                    response = requests.post("https://catalog.roblox.com/v1/catalog/items/details",
+                async with aiohttp.ClientSession() as session:
+                    
+                 async with session.post("https://catalog.roblox.com/v1/catalog/items/details",
                             json={"items": [{"itemType": "Asset", "id": int(currentItem)}]},
                             headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]['xcsrf_token']},
-                            cookies={".ROBLOSECURITY": self.accounts[str(random.randint(1, len(self.accounts)))]["cookie"]})
+                            cookies={".ROBLOSECURITY": self.accounts[str(random.randint(1, len(self.accounts)))]["cookie"]}) as response:
                     self.checks += 1
+                    jsonr = await response.json()
                 
-                    if response.status_code == 429:
+                    if response.status != 200:
                        print("Rate limit hit")
                        self.total_ratelimits += 1
                        await asyncio.sleep(30)
                        continue
                     
-                    if response.status_code != 200:
-                       print(f"Random error enccountered: {response.json()}")
-                       await asyncio.sleep(5)
-                       continue
-                   
-                    jsonr = response.json()
                     json_response = jsonr["data"][0]
                     if json_response.get("priceStatus") != "Off Sale" and json_response.get('unitsAvailableForConsumption') > 0:
-                       productid_response = requests.post("https://apis.roblox.com/marketplace-items/v1/items/details",
+                       productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                      json={"itemIds": [json_response["collectibleItemId"]]},
                                      headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"]},
                                      cookies={".ROBLOSECURITY": self.accounts[str(random.randint(1, len(self.accounts)))]["cookie"]})
+                       
                        try:
-                           productid_response = response.json()["data"][0]
+                           da = await productid_response.json()
+                           productid_data = da[0]
                        except json.JSONDecodeError as e:
                            print(f'Error decoding JSON: {e}')
-                           continue  
-                       try:                     
-                          coroutines = []
-                          for i in self.accounts:
-                              coroutines.append(buy_item(item_id = json_response["collectibleItemId"], price = json_response['price'], user_id = self.accounts[i]["id"], creator_id = json_response['creatorTargetId'], product_id = productid_response['collectibleProductId'], cookie = self.accounts[i]["cookie"], x_token = self.account[i]["xcsrf_token"]))
-                          await asyncio.gather(*coroutines)
-                       except:                 
-                           continue
+                           continue                     
+                       coroutines = []
+                       for i in self.accounts:
+                              coroutines.append(buy_item(item_id = json_response["collectibleItemId"], price = json_response['price'], user_id = self.accounts[i]["id"], creator_id = json_response['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[i]["cookie"], x_token = self.accounts[i]["xcsrf_token"]))
+                       await asyncio.gather(*coroutines)
                        await asyncio.sleep(1)
-                    t1 = asyncio.get_event_loop().time()
-                    self.last_time = round(t1 - t0, 3)
-                    await asyncio.sleep(1.5)
+                t1 = asyncio.get_event_loop().time()
+                self.last_time = round(t1 - t0, 3)
+                await asyncio.sleep(1.5)
 
 sniper = Sniper()
 asyncio.run(sniper.start())
