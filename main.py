@@ -23,7 +23,6 @@ class Sniper:
     def __init__(self) -> None:
         self.webhookEnabled = False if not "configWebhook" in config or not bool(config["configWebhook"]["enabled"] == "on") else True
         self.webhookUrl = config["configWebhook"]["webhook"] if self.webhookEnabled else None
-        self.webhook = config['configWebhook']["webhook"]
         self.accounts = None
         self.items = self._load_items()
         self.title = ("""
@@ -170,7 +169,7 @@ class Sniper:
                     else:
                        print(f"Purchase successful. Response: {json_response}.")
                        self.buys += 1
-                       if self.webhookEnabled:
+                       if self.Enabled:
                           embed = {
                                'title': f'New UGC item {item_id} bought',
                                'description': f'Price: {price}\nBuyer ID: {user_id}\nSeller ID: {creator_id}\nProduct ID: {product_id}',
