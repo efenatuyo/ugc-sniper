@@ -14,10 +14,10 @@ bored to explain how it works on github join my serv instead https://discord.gg/
 ## usage
 - take a look in config ini (easy explained)
 - format of multiple ids:  
-new line for every new id
+- new line for every new id
    
 - format of multiple Cookies:
-new line for every new cookie
+- new line for every new cookie
                            
 you don't need multiple ids and cookies one also works
                            
