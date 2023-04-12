@@ -8,7 +8,6 @@ bored to explain how it works on github join my serv instead https://discord.gg/
 - supports multi ids
 - supports multi cookies
 - is asynchronous that makes it able to mass buy items
-- uses aiohttp much faster than normal requests
 - supports every device (linux, windows, mac)
 
 ## usage
