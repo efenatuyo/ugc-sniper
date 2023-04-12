@@ -12,15 +12,15 @@ bored to explain how it works on github join my serv instead https://discord.gg/
 
 
 ## usage
-take a look in config ini (easy explained)
-format of multiple ids:  
-                       id1
-                       id2
-                       id3
+- take a look in config ini (easy explained)
+- format of multiple ids:  
+-                       id1
+-                       id2
+-                       id3
    
-format of multiple Cookies:
-                           cookie1
-                           cookie2
+- format of multiple Cookies:
+-                           cookie1
+-                           cookie2
                            
 you don't need multiple ids and cookies one also works
                            
