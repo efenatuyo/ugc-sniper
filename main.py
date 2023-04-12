@@ -209,6 +209,10 @@ class Sniper:
                                      headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"]},
                                      cookies={".ROBLOSECURITY": self.accounts[str(random.randint(1, len(self.accounts)))]["cookie"]})
                        
+                       
+                       if productid_response.status == 404:
+                           continue
+                       
                        try:
                            da = await productid_response.json()
                            productid_data = da[0]
