@@ -71,8 +71,8 @@ class Sniper:
             return [line.strip() for line in f.readlines()]
             
     async def _get_user_id(self, cookie) -> str:
-                response = await requests.get("https://users.roblox.com/v1/users/authenticated", cookies={".ROBLOSECURITY": cookie})
-                data = await response.json()
+                response = requests.get("https://users.roblox.com/v1/users/authenticated", cookies={".ROBLOSECURITY": cookie})
+                data = response.json()
                 if not "id" in data:
                     raise Exception("Couldn't find user id check your cookie for misspelled information.")
                 return data["id"]
@@ -85,7 +85,7 @@ class Sniper:
         print(Style.BRIGHT + f"――――――――――――――――――――――――――――――――――――[Last Speed: {Fore.YELLOW}{Style.BRIGHT}{self.last_time}{Fore.WHITE}{Style.BRIGHT}]――――――――――――――――――――――――――――――――――――")
             
     async def _get_xcsrf_token(self, cookie) -> dict:
-                response = await requests.post("https://accountsettings.roblox.com/v1/email", cookies={".ROBLOSECURITY": cookie})
+                response = requests.post("https://accountsettings.roblox.com/v1/email", cookies={".ROBLOSECURITY": cookie})
                 xcsrf_token = response.headers.get("x-csrf-token")
                 if xcsrf_token is None:
                     raise Exception("An error occurred while getting the X-CSRF-TOKEN. "
@@ -181,11 +181,11 @@ class Sniper:
             
 
             for currentItem in self.items:
-                    response = await requests.post("https://catalog.roblox.com/v1/catalog/items/details",
+                    response = requests.post("https://catalog.roblox.com/v1/catalog/items/details",
                             json={"items": [{"itemType": "Asset", "id": int(currentItem)}]},
                             headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]['xcsrf_token']},
                             cookies={".ROBLOSECURITY": self.accounts[str(random.randint(1, len(self.accounts)))]["cookie"]})
-                    
+                    self.checks += 1
                 
                     if response.status_code == 429:
                        print("Rate limit hit")
@@ -198,7 +198,7 @@ class Sniper:
                        await asyncio.sleep(5)
                        continue
                    
-                    jsonr = await response.json()
+                    jsonr = response.json()
                     json_response = jsonr["data"][0]
                     if json_response.get("priceStatus") != "Off Sale" and json_response.get('unitsAvailableForConsumption') > 0:
                        productid_response = await requests.post("https://apis.roblox.com/marketplace-items/v1/items/details",
