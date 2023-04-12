@@ -20,3 +20,4 @@ bored to explain how it works on github join my serv instead https://discord.gg/
                            
 you don't need multiple ids and cookies one also works
                            
+next update 50 stars
