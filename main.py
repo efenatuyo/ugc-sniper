@@ -66,7 +66,7 @@ class Sniper:
                 my_dict[str(i+1)] = {"cookie": line}
             return my_dict
         
-    def _load_items(self) -> list[str]:
+    def _load_items(self) -> list:
         with open('limiteds.txt', 'r') as f:
             return [line.strip() for line in f.readlines()]
             
