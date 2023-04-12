@@ -1,13 +1,20 @@
-import datetime
-import json
-import os
-import aiohttp
-import uuid
-import asyncio
-import random
-import requests
-import configparser
-from colorama import Fore, Back, Style
+try:
+  import datetime
+  import json
+  import os
+  import aiohttp
+  import uuid
+  import asyncio
+  import random
+  import requests
+  import configparser
+  from colorama import Fore, Back, Style
+except ModuleNotFoundError:
+    print("Modules not installed proberly installing now")
+    os.system("pip install requests")
+    os.system("pip install aiohttp")
+    os.system("pip install configparser")
+    os.system("pip install colorama")
 
 config = configparser.ConfigParser()
 config.read('config.ini')
