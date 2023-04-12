@@ -13,7 +13,7 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 class Sniper:
     def __init__(self) -> None:
-        self.webhookEnabled = True if bool(config["configWebhook"]["enabled"] == "on") else False
+        self.webhookEnabled = False if not "configWebhook" in config and not bool(config["configWebhook"]["enabled"] == "on") else True
         self.webhookUrl = config["configWebhook"]["webhook"] if self.webhookEnabled else None
         self.webhook = config['configWebhook']["webhook"]
         self.accounts = None
@@ -29,8 +29,6 @@ class Sniper:
  ░    ░  ░ ░ ░ ▒    ░ ░   ░ ░ ░ ▒           ░  ░  ░     ░   ░ ░  ▒ ░░░          ░     ░░   ░ 
  ░    ░      ░ ░      ░  ░    ░ ░                 ░           ░  ░              ░  ░   ░     
                                                                                              
-
-
 """)
         self.checks = 0
         self.buys = 0
@@ -110,7 +108,6 @@ class Sniper:
         
          """
             Purchase a limited item on Roblox.
-
             Args:
                 item_id (int): The ID of the limited item to purchase.
                 price (int): The price at which to purchase the limited item.
@@ -199,7 +196,7 @@ class Sniper:
                        continue
                     
                     json_response = jsonr["data"][0]
-                    if json_response.get("priceStatus") != "Off Sale" and json_response['unitsAvailableForConsumption'] > 0:
+                    if json_response.get("priceStatus") != "Off Sale" and json_response.get('unitsAvailableForConsumption') > 0:
                        productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                      json={"itemIds": [json_response["collectibleItemId"]]},
                                      headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"]},
