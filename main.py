@@ -80,7 +80,7 @@ class Sniper:
            return data["id"]
     
     def _print_stats(self) -> None:
-        print("Version: 3.7")
+        print("Version: 3.7.1")
         print(Fore.GREEN + Style.BRIGHT + self.title)
         print(Style.BRIGHT + f"――――――――――――――――――――――――――――――――――――――[Total buys: {Fore.GREEN}{Style.BRIGHT}{self.buys}{Fore.WHITE}{Style.BRIGHT}]――――――――――――――――――――――――――――――――――――――")
         print(Style.BRIGHT + f"―――――――――――――――――――――――――――――――――――[Total ratelimits: {Fore.RED}{Style.BRIGHT}{self.total_ratelimits}{Fore.WHITE}{Style.BRIGHT}]―――――――――――――――――――――――――――――――――――")
@@ -180,7 +180,7 @@ class Sniper:
                 else:
                        print(f"Purchase successful. Response: {json_response}.")
                        self.buys += 1
-                       if self.Enabled:
+                       if self.webhookEnabled:
                           embed = {
                                'title': f'New UGC item {item_id} bought',
                                'description': f'Price: {price}\nBuyer ID: {user_id}\nSeller ID: {creator_id}\nProduct ID: {product_id}',
@@ -223,8 +223,14 @@ class Sniper:
                        self.total_ratelimits += 1
                        await asyncio.sleep(30)
                        continue
-                   
-                    json_response = jsonr["data"][0]
+                    
+                    try:
+                       json_response = jsonr["data"][0]
+                    except Exception as e:
+                        print("Json error:", e)
+                        self.errors += 1
+                        continue
+                    
                     if json_response.get("priceStatus") != "Off Sale" and json_response.get('unitsAvailableForConsumption') > 0:
                        productid_response = await client.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                      json={"itemIds": [json_response["collectibleItemId"]]},
