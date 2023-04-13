@@ -9,14 +9,16 @@ try:
   import configparser
   from colorama import Fore, Back, Style
   import httpx
+  from fake_useragent import UserAgent
 except ModuleNotFoundError:
     print("Modules not installed proberly installing now")
     os.system("pip install requests")
-    os.system("pip install httpx3")
+    os.system("pip install httpx")
     os.system("pip install configparser")
     os.system("pip install colorama")
+    os.system("pip install fake_useragent")
 
-
+ua = UserAgent()
 config = configparser.ConfigParser()
 config.read('config.ini')
 class Sniper:
@@ -77,10 +79,12 @@ class Sniper:
        async with httpx.AsyncClient(cookies={".ROBLOSECURITY": cookie}) as client:
            response = await client.get("https://users.roblox.com/v1/users/authenticated")
            data = response.json()
-           return data["id"]
+           if data.get('id') == None:
+              raise Exception("Couldn't scrape user id")
+           return data.get('id')
     
     def _print_stats(self) -> None:
-        print("Version: 3.7.1")
+        print("Version: 3.8.1")
         print(Fore.GREEN + Style.BRIGHT + self.title)
         print(Style.BRIGHT + f"――――――――――――――――――――――――――――――――――――――[Total buys: {Fore.GREEN}{Style.BRIGHT}{self.buys}{Fore.WHITE}{Style.BRIGHT}]――――――――――――――――――――――――――――――――――――――")
         print(Style.BRIGHT + f"―――――――――――――――――――――――――――――――――――[Total ratelimits: {Fore.RED}{Style.BRIGHT}{self.total_ratelimits}{Fore.WHITE}{Style.BRIGHT}]―――――――――――――――――――――――――――――――――――")
@@ -90,7 +94,7 @@ class Sniper:
             
     async def _get_xcsrf_token(self, cookie) -> dict:
         async with httpx.AsyncClient(cookies={".ROBLOSECURITY": cookie}) as client:
-              response = await client.post("https://accountsettings.roblox.com/v1/email")
+              response = await client.post("https://accountsettings.roblox.com/v1/email", headers={'User-Agent': ua.random})
               xcsrf_token = response.headers.get("x-csrf-token")
               if xcsrf_token is None:
                  raise Exception("An error occurred while getting the X-CSRF-TOKEN. "
@@ -151,7 +155,7 @@ class Sniper:
                 data["idempotencyKey"] = str(uuid.uuid4())
                 response = await client.post(f"https://apis.roblox.com/marketplace-sales/v1/item/{item_id}/purchase-item",
                            json=data,
-                           headers={"x-csrf-token": x_token},
+                           headers={"x-csrf-token": x_token, 'User-Agent': ua.random},
                            cookies={".ROBLOSECURITY": cookie})
                     
                 if response.status_code == 429:
@@ -200,7 +204,7 @@ class Sniper:
 
             for currentItem in self.items:
                 async with httpx.AsyncClient() as client:
-                    headers = {"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]['xcsrf_token']}
+                    headers = {"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]['xcsrf_token'], 'User-Agent': ua.random}
                     cookies = {".ROBLOSECURITY": self.accounts[str(random.randint(1, len(self.accounts)))]["cookie"]}
                     json_body = {"items": [{"itemType": "Asset", "id": int(currentItem)}]}
                     response = await client.post(
@@ -221,7 +225,7 @@ class Sniper:
                     if response.status_code == 429:
                        print(f"Ramdom Error: {jsonr}")
                        self.total_ratelimits += 1
-                       await asyncio.sleep(30)
+                       await asyncio.sleep(10)
                        continue
                     
                     try:
@@ -234,7 +238,7 @@ class Sniper:
                     if json_response.get("priceStatus") != "Off Sale" and json_response.get('unitsAvailableForConsumption') > 0:
                        productid_response = await client.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                      json={"itemIds": [json_response["collectibleItemId"]]},
-                                     headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"]},
+                                     headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"], 'User-Agent': ua.random},
                                      cookies={".ROBLOSECURITY": self.accounts[str(random.randint(1, len(self.accounts)))]["cookie"]})
                        
                        
