@@ -12,7 +12,6 @@ bored to explain how it works on github join my serv instead https://discord.gg/
 - supports every device (linux, windows, mac)
 
 ## usage
-- take a look in config ini (easy explained)
 - format of multiple ids:  
 - new line for every new id
    
