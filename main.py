@@ -117,7 +117,7 @@ class Sniper:
            return data.get('id')
     
     def _print_stats(self) -> None:
-        print("Version: 4.0.0")
+        print("Version: 4.0.1")
         print(Fore.GREEN + Style.BRIGHT + self.title)
         print(Fore.RESET + Style.RESET_ALL)
         print(Style.BRIGHT + f"――――――――――――――――――――――――――――――――――――――[Total buys: {Fore.GREEN}{Style.BRIGHT}{self.buys}{Fore.WHITE}{Style.BRIGHT}]――――――――――――――――――――――――――――――――――――――")
@@ -192,13 +192,13 @@ class Sniper:
                            headers={"x-csrf-token": x_token, 'User-Agent': ua.random},
                            cookies={".ROBLOSECURITY": cookie})
                     
-                if response.status_code == 429:
+                if response.status == 429:
                        print("Ratelimit encountered. Retrying purchase in 0.5 seconds...")
                        await asyncio.sleep(0.5)
                        continue
             
                 try:
-                      json_response = response.json()
+                      json_response = await response.json()
                 except aiohttp.ContentTypeError as e:
                       self.errors += 1
                       print(f"JSON decode error encountered: {e}. Retrying purchase...")
@@ -253,8 +253,8 @@ class Sniper:
                        self.errors += 1
                        if jsonr.get("message") == 'Token Validation Failed':
                            self.status = "getting x token"
-                           self._print_stats
-                           response = self._get_xcsrf_token(currentAccount["cookie"])
+                           self._print_stats()
+                           response = await self._get_xcsrf_token(currentAccount["cookie"])
                            currentAccount["xcsrf_token"] = response["xcsrf_token"]
                            currentAccount["created"] = response["created"]
                        elif jsonr.get("errors")[0]["message"] == 'Invalid asset type id.':
