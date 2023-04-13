@@ -1,3 +1,6 @@
+# Script made by xolo#4942
+# Version 4.0.1
+
 try:
   import datetime
   import json
