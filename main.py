@@ -1,5 +1,5 @@
-# Script made by xolo#4942
-# Version 4.0.1
+# made by xolo#4942
+# version 4.0.2
 
 try:
   import datetime
@@ -120,15 +120,15 @@ class Sniper:
            return data.get('id')
     
     def _print_stats(self) -> None:
-        print("Version: 4.0.1")
+        print("Version: 4.0.2")
         print(Fore.GREEN + Style.BRIGHT + self.title)
         print(Fore.RESET + Style.RESET_ALL)
-        print(Style.BRIGHT + f"――――――――――――――――――――――――――――――――――――――[Total buys: {Fore.GREEN}{Style.BRIGHT}{self.buys}{Fore.WHITE}{Style.BRIGHT}]――――――――――――――――――――――――――――――――――――――")
-        print(Style.BRIGHT + f"―――――――――――――――――――――――――――――――――――[Total ratelimits: {Fore.RED}{Style.BRIGHT}{self.total_ratelimits}{Fore.WHITE}{Style.BRIGHT}]―――――――――――――――――――――――――――――――――――")
-        print(Style.BRIGHT + f"―――――――――――――――――――――――――――――――――――[Total errors: {Fore.RED}{Style.BRIGHT}{self.errors}{Fore.WHITE}{Style.BRIGHT}]―――――――――――――――――――――――――――――――――――")
-        print(Style.BRIGHT + f"――――――――――――――――――――――――――――――――――[Total price checks: {Fore.YELLOW}{Style.BRIGHT}{self.checks}{Fore.WHITE}{Style.BRIGHT}]――――――――――――――――――――――――――――――――――")
-        print(Style.BRIGHT + f"――――――――――――――――――――――――――――――――――――[Last Speed: {Fore.YELLOW}{Style.BRIGHT}{self.last_time}{Fore.WHITE}{Style.BRIGHT}]――――――――――――――――――――――――――――――――――――")
-        print(Style.BRIGHT + f"――――――――――――――――――――――――――――――――――――――[Current Task: {Fore.GREEN}{Style.BRIGHT}{self.task}{Fore.WHITE}{Style.BRIGHT}]――――――――――――――――――――――――――――――――――――――")
+        print(Style.BRIGHT + f"                           [ Total buys: {Fore.GREEN}{Style.BRIGHT}{self.buys}{Fore.WHITE}{Style.BRIGHT} ]")
+        print(Style.BRIGHT + f"                           [ Total errors: {Fore.RED}{Style.BRIGHT}{self.errors}{Fore.WHITE}{Style.BRIGHT} ]")
+        print(Style.BRIGHT + f"                           [ Last Speed: {Fore.YELLOW}{Style.BRIGHT}{self.last_time}{Fore.WHITE}{Style.BRIGHT} ]")
+        print(Style.BRIGHT + f"                           [ Total ratelimits: {Fore.RED}{Style.BRIGHT}{self.total_ratelimits}{Fore.WHITE}{Style.BRIGHT} ]")
+        print(Style.BRIGHT + f"                           [ Total price checks: {Fore.YELLOW}{Style.BRIGHT}{self.checks}{Fore.WHITE}{Style.BRIGHT} ]")
+        print(Style.BRIGHT + f"                           [ Current Task: {Fore.GREEN}{Style.BRIGHT}{self.task}{Fore.WHITE}{Style.BRIGHT} ]")
             
     async def _get_xcsrf_token(self, cookie) -> dict:
         async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as client:
