@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 4.1.4
+# version 4.1.5
 
 try:
   import datetime
@@ -50,7 +50,7 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "4.1.4"
+        self.version = "4.1.5"
         self.task = None
         self._setup_accounts()
         # / couldn't fix errors aka aiohttp does not support proxies
@@ -87,7 +87,7 @@ class Sniper:
     def check_version(self):
         self.task = "Github Checker"
         self._print_stats()
-        response = requests.get("https://pastebin.com/raw/6RcY3tDX")
+        response = requests.get("https://pastebin.com/raw/MXFsQ0TQ")
         
         if response.status_code != 200:
             pass
@@ -315,7 +315,7 @@ class Sniper:
                        await asyncio.gather(*coroutines)
                 t1 = asyncio.get_event_loop().time()
                 self.last_time = round(t1 - t0, 3)
-                await asyncio.sleep(1.5)
+                await asyncio.sleep(1)
 
 sniper = Sniper()
 sniper
