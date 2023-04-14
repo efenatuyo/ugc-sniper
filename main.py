@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 4.0.3
+# version 4.1.3
 
 try:
   import datetime
@@ -15,7 +15,7 @@ try:
   import aiohttp
 
 except ModuleNotFoundError:
-    print("Modules not installed proberly installing now")
+    print("Modules not installed properly installing now")
     os.system("pip install requests")
     os.system("pip install configparser")
     os.system("pip install colorama")
@@ -50,6 +50,7 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
+        self.version = "4.1.3"
         self.task = None
         self._setup_accounts()
         # / couldn't fix errors aka aiohttp does not support proxies
@@ -57,6 +58,7 @@ class Sniper:
         # self.workingProxies = []
         # asyncio.run(self.start_proxy())
         # print(self.workingProxies)
+        self.check_version()
         asyncio.run(self.start())
         
     # / couldn't fix errors aka aiohttp does not support proxies
@@ -81,7 +83,21 @@ class Sniper:
     #  for proxy in self.proxylist:
     #      coroutines.append(self.check(proxy))
     #  await asyncio.gather(*coroutines)
-      
+    
+    def check_version(self):
+        self.task = "Github Checker"
+        self._print_stats()
+        response = requests.get("https://raw.githubusercontent.com/efenatuyo/ugc-sniper/main/version")
+        
+        if response.status_code != 200:
+            pass
+        
+        if not response.text == self.version:
+                print("NEW UPDATED VERSION PLEASE UPDATE YOUR FILE")
+                print("will continue in 5 seconds")
+                import time
+                time.sleep(5)
+        
     class DotDict(dict):
         def __getattr__(self, attr):
             return self[attr]
@@ -116,11 +132,11 @@ class Sniper:
            response = await client.get("https://users.roblox.com/v1/users/authenticated")
            data = await response.json()
            if data.get('id') == None:
-              raise Exception("Couldn't scrape user id")
+              raise Exception("Couldn't scrape user id. Error:", data)
            return data.get('id')
     
     def _print_stats(self) -> None:
-        print("Version: 4.0.3")
+        print(f"Version: {self.version}")
         print(Fore.GREEN + Style.BRIGHT + self.title)
         print(Fore.RESET + Style.RESET_ALL)
         print(Style.BRIGHT + f"                           [ Total buys: {Fore.GREEN}{Style.BRIGHT}{self.buys}{Fore.WHITE}{Style.BRIGHT} ]")
@@ -266,7 +282,12 @@ class Sniper:
                            
                        await asyncio.sleep(10)
                        continue
-                    json_response = jsonr["data"][0]
+                    
+                    try:
+                       json_response = jsonr["data"][0]
+                    except Exception as e:
+                        print("Json Error:", e)
+                        
                     if json_response.get("priceStatus") != "Off Sale" and 0 if json_response.get('unitsAvailableForConsumption') is None else json_response.get('unitsAvailableForConsumption') > 0:
                        productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                      json={"itemIds": [json_response["collectibleItemId"]]},
