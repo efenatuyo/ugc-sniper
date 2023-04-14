@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 4.1.3
+# version 4.1.4
 
 try:
   import datetime
@@ -50,7 +50,7 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "4.1.3"
+        self.version = "4.1.4"
         self.task = None
         self._setup_accounts()
         # / couldn't fix errors aka aiohttp does not support proxies
@@ -87,11 +87,11 @@ class Sniper:
     def check_version(self):
         self.task = "Github Checker"
         self._print_stats()
-        response = requests.get("https://raw.githubusercontent.com/efenatuyo/ugc-sniper/main/version")
+        response = requests.get("https://pastebin.com/raw/6RcY3tDX")
         
         if response.status_code != 200:
             pass
-        
+        print(response.text)
         if not response.text == self.version:
                 print("NEW UPDATED VERSION PLEASE UPDATE YOUR FILE")
                 print("will continue in 5 seconds")
@@ -277,7 +277,7 @@ class Sniper:
                            response = await self._get_xcsrf_token(currentAccount["cookie"])
                            currentAccount["xcsrf_token"] = response["xcsrf_token"]
                            currentAccount["created"] = response["created"]
-                       elif jsonr.get("errors")[0]["message"] == 'Invalid asset type id.':
+                       elif jsonr.get("errors")[0]["message"] is not None and jsonr.get("errors")[0]["message"] == 'Invalid asset type id.':
                            raise Exception("Invalid Item Id given")
                            
                        await asyncio.sleep(10)
