@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 5.1.2
+# version 5.1.3
 
 try:
   import datetime
@@ -47,7 +47,7 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "5.1.2"
+        self.version = "5.1.3"
         self.task = None
         self.usedIds = []
         self._setup_accounts()
@@ -242,6 +242,8 @@ class Sniper:
                   if "id" in json_response:
                       if not json_response["id"] in self.usedIds:
                         self.usedIds.append(json_response)
+                        if json_response.get("priceStatus", "Off Sale") == "Off Sale":
+                            continue
                         productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                      json={"itemIds": [json_response["collectibleItemId"]]},
                                      headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"]},
