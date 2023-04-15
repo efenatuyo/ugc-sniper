@@ -3,6 +3,7 @@ the best one out there (yet again)
 
 bored to explain how it works on github join my serv instead https://discord.gg/n2xfSuf7p8
 
+tutorial (not by me) - https://docs.google.com/document/d/16VK4WM39sgjrkdN-u2dIzzL6wGgD89g4pQ-N-w3emOY/edit
 
 ## functions
 - supports multi ids
