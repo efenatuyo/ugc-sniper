@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 5.1.1
+# version 5.1.2
 
 try:
   import datetime
@@ -47,7 +47,7 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "5.1.1"
+        self.version = "5.1.2"
         self.task = None
         self.usedIds = []
         self._setup_accounts()
@@ -255,7 +255,7 @@ class Sniper:
                       
                         coroutines = []
                         for i in self.accounts:
-                              coroutines.append(self.buy_item(item_id = json_response["collectibleItemId"], price = json_response['price'], user_id = self.accounts[i]["id"], creator_id = json_response['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[i]["cookie"], x_token = self.accounts[i]["xcsrf_token"]))
+                              coroutines.append(self.buy_item(item_id = json_response["collectibleItemId"], price = 0, user_id = self.accounts[i]["id"], creator_id = json_response['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[i]["cookie"], x_token = self.accounts[i]["xcsrf_token"]))
                         self.task = "Item Buyer"
                         await asyncio.gather(*coroutines)
         await asyncio.sleep(1)
