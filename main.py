@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 5.0.0
+# version 5.0.1
 
 try:
   import datetime
@@ -47,7 +47,7 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "5.0.0"
+        self.version = "5.0.1"
         self.task = None
         self.usedIds = []
         self._setup_accounts()
@@ -265,8 +265,6 @@ class Sniper:
             self.task = "Item Scraper & Searcher"
             t0 = asyncio.get_event_loop().time()
 
-            if not await self._check_xcsrf_token():
-                raise Exception("x_csrf_token couldn't be generated")
             for currentItem in self.items:
                  if not currentItem.isdigit():
                      raise Exception(f"Invalid item id given ID: {currentItem}")
@@ -347,6 +345,8 @@ class Sniper:
     
     async def auto_update(self):
         while True:
+            if not await self._check_xcsrf_token():
+                raise Exception("x_csrf_token couldn't be generated")
             os.system(self.clear)
             self._print_stats()
             await asyncio.sleep(1)
