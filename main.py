@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 4.1.5
+# version 5.0.0
 
 try:
   import datetime
@@ -11,7 +11,6 @@ try:
   import requests
   import configparser
   from colorama import Fore, Back, Style
-  import fake_useragent
   import aiohttp
 
 except ModuleNotFoundError:
@@ -19,10 +18,8 @@ except ModuleNotFoundError:
     os.system("pip install requests")
     os.system("pip install configparser")
     os.system("pip install colorama")
-    os.system("pip install fake_useragent")
     os.system("pip install aiohttp")
 
-ua = fake_useragent.UserAgent()
 config = configparser.ConfigParser()
 config.read('config.ini')
 class Sniper:
@@ -50,8 +47,9 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "4.1.5"
+        self.version = "5.0.0"
         self.task = None
+        self.usedIds = []
         self._setup_accounts()
         # / couldn't fix errors aka aiohttp does not support proxies
         # self.proxylist = open("proxylist.txt").read().splitlines()
@@ -59,6 +57,7 @@ class Sniper:
         # asyncio.run(self.start_proxy())
         # print(self.workingProxies)
         self.check_version()
+        # asyncio.run(self.start())
         asyncio.run(self.start())
         
     # / couldn't fix errors aka aiohttp does not support proxies
@@ -149,7 +148,7 @@ class Sniper:
             
     async def _get_xcsrf_token(self, cookie) -> dict:
         async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as client:
-              response = await client.post("https://accountsettings.roblox.com/v1/email", headers={'User-Agent': ua.random})
+              response = await client.post("https://accountsettings.roblox.com/v1/email")
               xcsrf_token = response.headers.get("x-csrf-token")
               if xcsrf_token is None:
                  raise Exception("An error occurred while getting the X-CSRF-TOKEN. "
@@ -170,9 +169,8 @@ class Sniper:
                 return False
         return True
       return False
-  
-    async def start(self) -> None:
-        async def buy_item(item_id: int, price: int, user_id: int, creator_id: int,
+     
+    async def buy_item(self, item_id: int, price: int, user_id: int, creator_id: int,
          product_id: int, cookie: str, x_token: str) -> None:
         
          """
@@ -209,7 +207,7 @@ class Sniper:
                 data["idempotencyKey"] = str(uuid.uuid4())
                 response = await client.post(f"https://apis.roblox.com/marketplace-sales/v1/item/{item_id}/purchase-item",
                            json=data,
-                           headers={"x-csrf-token": x_token, 'User-Agent': ua.random},
+                           headers={"x-csrf-token": x_token},
                            cookies={".ROBLOSECURITY": cookie})
                     
                 if response.status == 429:
@@ -232,20 +230,44 @@ class Sniper:
                 else:
                        print(f"Purchase successful. Response: {json_response}.")
                        self.buys += 1
-                       
-                       
+    
+    async def auto_search(self) -> None:
+      while True:
+        async with aiohttp.ClientSession() as session:
+            async with session.get("https://ugcnotifi.rfrrgf.repl.co/free_item") as response:
+                self.checks += 1
+                if response.status == 200:
+                  json_response = await response.json()
+                  if "id" in json_response:
+                      if not json_response["id"] in self.usedIds:
+                        self.usedIds.append(json_response)
+                        productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
+                                     json={"itemIds": [json_response["collectibleItemId"]]},
+                                     headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"]},
+                                     cookies={".ROBLOSECURITY": self.accounts[str(random.randint(1, len(self.accounts)))]["cookie"]})
+                        try:
+                           da = await productid_response.json(content_type='application/json')
+                           productid_data = da[0]
+                        except (json.JSONDecodeError, aiohttp.ContentTypeError) as e:
+                           print(f'Error decoding JSON: {e}')
+                           self.errors += 1
+                      
+                        coroutines = []
+                        for i in self.accounts:
+                              coroutines.append(self.buy_item(item_id = json_response["collectibleItemId"], price = json_response['price'], user_id = self.accounts[i]["id"], creator_id = json_response['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[i]["cookie"], x_token = self.accounts[i]["xcsrf_token"]))
+                        self.task = "Item Buyer"
+                        await asyncio.gather(*coroutines)
+        await asyncio.sleep(1)
+                    
+    async def given_id_sniper(self) -> None:
         while True:
-            self.task = "Item Scraper"
+         async with aiohttp.ClientSession() as session:
+            self.task = "Item Scraper & Searcher"
             t0 = asyncio.get_event_loop().time()
-            os.system(self.clear)
-            self._print_stats()
+
             if not await self._check_xcsrf_token():
                 raise Exception("x_csrf_token couldn't be generated")
-            
-
             for currentItem in self.items:
-                async with aiohttp.ClientSession() as session:
-                 
                  if not currentItem.isdigit():
                      raise Exception(f"Invalid item id given ID: {currentItem}")
                  
@@ -309,13 +331,25 @@ class Sniper:
                            continue                     
                        coroutines = []
                        for i in self.accounts:
-                              coroutines.append(buy_item(item_id = json_response["collectibleItemId"], price = json_response['price'], user_id = self.accounts[i]["id"], creator_id = json_response['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[i]["cookie"], x_token = self.accounts[i]["xcsrf_token"]))
+                              coroutines.append(self.buy_item(item_id = json_response["collectibleItemId"], price = json_response['price'], user_id = self.accounts[i]["id"], creator_id = json_response['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[i]["cookie"], x_token = self.accounts[i]["xcsrf_token"]))
                        self.task = "Item Buyer"
-                       self._print_stats()
                        await asyncio.gather(*coroutines)
-                t1 = asyncio.get_event_loop().time()
-                self.last_time = round(t1 - t0, 3)
-                await asyncio.sleep(1)
-
+                 t1 = asyncio.get_event_loop().time()
+                 self.last_time = round(t1 - t0, 3)
+                 await asyncio.sleep(1)
+    
+    async def start(self):
+            coroutines = []
+            coroutines.append(self.given_id_sniper())
+            coroutines.append(self.auto_search())
+            coroutines.append(self.auto_update())
+            await asyncio.gather(*coroutines)
+    
+    async def auto_update(self):
+        while True:
+            os.system(self.clear)
+            self._print_stats()
+            await asyncio.sleep(1)
+        
 sniper = Sniper()
 sniper
