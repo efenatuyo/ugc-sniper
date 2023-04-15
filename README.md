@@ -22,4 +22,4 @@ you don't need multiple ids and cookies one also works
                            
 next update 100 stars (ugc searcher)
 
-<a rel="license" href="http://creativecommons.org/licenses/by-nd/3.0/de/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nd/3.0/de/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nd/3.0/en/">Creative Commons Attribution-NoDerivs 3.0 Germany License</a>.
+
