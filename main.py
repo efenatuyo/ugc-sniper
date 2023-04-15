@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 5.0.1
+# version 5.1.1
 
 try:
   import datetime
@@ -47,7 +47,7 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "5.0.1"
+        self.version = "5.1.1"
         self.task = None
         self.usedIds = []
         self._setup_accounts()
@@ -128,7 +128,7 @@ class Sniper:
             
     async def _get_user_id(self, cookie) -> str:
        async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as client:
-           response = await client.get("https://users.roblox.com/v1/users/authenticated")
+           response = await client.get("https://users.roblox.com/v1/users/authenticated", ssl = False)
            data = await response.json()
            if data.get('id') == None:
               raise Exception("Couldn't scrape user id. Error:", data)
@@ -148,7 +148,7 @@ class Sniper:
             
     async def _get_xcsrf_token(self, cookie) -> dict:
         async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as client:
-              response = await client.post("https://accountsettings.roblox.com/v1/email")
+              response = await client.post("https://accountsettings.roblox.com/v1/email", ssl = False)
               xcsrf_token = response.headers.get("x-csrf-token")
               if xcsrf_token is None:
                  raise Exception("An error occurred while getting the X-CSRF-TOKEN. "
@@ -208,7 +208,7 @@ class Sniper:
                 response = await client.post(f"https://apis.roblox.com/marketplace-sales/v1/item/{item_id}/purchase-item",
                            json=data,
                            headers={"x-csrf-token": x_token},
-                           cookies={".ROBLOSECURITY": cookie})
+                           cookies={".ROBLOSECURITY": cookie}, ssl = False)
                     
                 if response.status == 429:
                        print("Ratelimit encountered. Retrying purchase in 0.5 seconds...")
@@ -233,9 +233,10 @@ class Sniper:
     
     async def auto_search(self) -> None:
       while True:
+       try:
         async with aiohttp.ClientSession() as session:
-            async with session.get("https://ugcnotifi.rfrrgf.repl.co/free_item") as response:
-                self.checks += 1
+            async with session.get("https://ugcnotifi.rfrrgf.repl.co/free_item", ssl = False) as response:
+                self.checks += 1                
                 if response.status == 200:
                   json_response = await response.json()
                   if "id" in json_response:
@@ -244,7 +245,7 @@ class Sniper:
                         productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                      json={"itemIds": [json_response["collectibleItemId"]]},
                                      headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"]},
-                                     cookies={".ROBLOSECURITY": self.accounts[str(random.randint(1, len(self.accounts)))]["cookie"]})
+                                     cookies={".ROBLOSECURITY": self.accounts[str(random.randint(1, len(self.accounts)))]["cookie"]}, ssl = False)
                         try:
                            da = await productid_response.json(content_type='application/json')
                            productid_data = da[0]
@@ -258,6 +259,9 @@ class Sniper:
                         self.task = "Item Buyer"
                         await asyncio.gather(*coroutines)
         await asyncio.sleep(1)
+       except aiohttp.client_exceptions.ClientConnectorError as e:
+           print(f"Error connecting to host: {e}")
+           self.errors
                     
     async def given_id_sniper(self) -> None:
         while True:
@@ -273,7 +277,7 @@ class Sniper:
                  async with session.post("https://catalog.roblox.com/v1/catalog/items/details",
                             json={"items": [{"itemType": "Asset", "id": int(currentItem)}]},
                             headers={"x-csrf-token": currentAccount['xcsrf_token']},
-                            cookies={".ROBLOSECURITY": currentAccount["cookie"]}) as response:
+                            cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl = False) as response:
                     self.checks += 1
                     
                     try:
@@ -312,7 +316,7 @@ class Sniper:
                        productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                      json={"itemIds": [json_response["collectibleItemId"]]},
                                      headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"]},
-                                     cookies={".ROBLOSECURITY": self.accounts[str(random.randint(1, len(self.accounts)))]["cookie"]})
+                                     cookies={".ROBLOSECURITY": self.accounts[str(random.randint(1, len(self.accounts)))]["cookie"]}, ssl = False)
                        
                        
                        if productid_response.status == 404:
