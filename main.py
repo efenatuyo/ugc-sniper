@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 6.0.0
+# version 6.1.0
 
 try:
   import datetime
@@ -47,7 +47,7 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "6.0.0"
+        self.version = "6.1.0"
         self.task = None
         self.scraped_ids = []
         self.latest_free_item = {}
