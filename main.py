@@ -231,6 +231,14 @@ class Sniper:
                 else:
                        print(f"Purchase successful. Response: {json_response}.")
                        self.buys += 1
+                       if self.webhookEnabled:
+                            currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
+                            headers = {"x-csrf-token": currentAccount['xcsrf_token']}
+                            cookies = {".ROBLOSECURITY": currentAccount["cookie"]}
+                            info = requests.post("https://catalog.roblox.com/v1/catalog/items/details", json={"items": [{"itemType": "Asset", "id": item_id}]}, headers=headers, cookies=cookies)
+                            thumbnail = requests.get(f"https://thumbnails.roblox.com/v1/assets?assetIds={item_id}&returnPolicy=PlaceHolder&size=512x512&format=Png&isCircular=false", headers=headers, cookies=cookies)
+                            if info.status_code == 200 and thumbnail.status_code == 200:
+                                requests.post(self.webhookUrl, json={"content":None, "embeds":[ { "title":f"{info.json()['data'][0]['name']}", "url":f"https://www.roblox.com/catalog/{item_id}", "color":65280, "fields":[ { "name":"purchaseResult", "value":f"{json_response['purchaseResult']}", "inline":True }, { "name":"purchased", "value":f"{json_response['purchased']}", "inline":True }, { "name":"errorMessage", "value":f"{json_response['errorMessage']}" } ], "author":{ "name":"Purchased limited successfully!" }, "footer":{ "text":"Xolo's Sniper" }, "thumbnail":{ "url":f"{thumbnail.json()['data'][0]['imageUrl']}" } } ]})
     
     async def auto_search(self) -> None:
       while True:
