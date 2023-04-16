@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 5.1.3
+# version 6.0.0
 
 try:
   import datetime
@@ -47,9 +47,10 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "5.1.3"
+        self.version = "6.0.0"
         self.task = None
-        self.usedIds = []
+        self.scraped_ids = []
+        self.latest_free_item = {}
         self._setup_accounts()
         # / couldn't fix errors aka aiohttp does not support proxies
         # self.proxylist = open("proxylist.txt").read().splitlines()
@@ -235,32 +236,45 @@ class Sniper:
       while True:
        try:
         async with aiohttp.ClientSession() as session:
-            async with session.get("https://ugcnotifi.rfrrgf.repl.co/free_item", ssl = False) as response:
-                self.checks += 1                
+            async with session.get("https://catalog.roblox.com/v1/search/items/details?Keyword=orange%20teal%20cyan%20red%20green%20topaz%20yellow%20wings%20maroon%20space%20dominus%20lime%20mask%20mossy%20wooden%20crimson%20salmon%20brown%20pastel%20%20ruby%20diamond%20creatorname%20follow%20catalog%20link%20rare%20emerald%20chain%20blue%20deep%20expensive%20furry%20hood%20currency%20coin%20royal%20navy%20ocean%20air%20white%20cyber%20ugc%20verified%20black%20purple%20yellow%20violet%20description%20dark%20bright%20rainbow%20pink%20cyber%20roblox%20multicolor%20light%20gradient%20grey%20gold%20cool%20indigo%20test%20hat%20limited2%20headphones%20emo%20edgy%20back%20front%20lava%20horns%20water%20waist%20face%20neck%20shoulders%20collectable&Category=11&Subcategory=19&CurrencyType=3&MaxPrice=0&salesTypeFilter=2&SortType=3&limit=30", ssl = False) as response:
+                self.checks += 1       
+                if response.status == 429:
+                       print("Rate limit hit")
+                       self.total_ratelimits += 1
+                       await asyncio.sleep(20)
+                       continue
+                   
                 if response.status == 200:
-                  json_response = await response.json()
-                  if "id" in json_response:
-                      if not json_response["id"] in self.usedIds:
-                        self.usedIds.append(json_response)
-                        if json_response.get("priceStatus", "Off Sale") == "Off Sale":
+                  items = (await response.json())["data"]
+                  for item in items:
+                      if item["id"] not in self.scraped_ids:
+                          print(f"Found new free item: {item['name']} (ID: {item['id']})")
+                          self.latest_free_item = item
+                          self.scraped_ids.append(item['id'])
+                          
+                          if self.latest_free_item.get("priceStatus", "Off Sale") == "Off Sale":
                             continue
-                        productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
-                                     json={"itemIds": [json_response["collectibleItemId"]]},
+                        
+                          if self.latest_free_item.get("collectibleItemId") is None:
+                              continue
+                          
+                          productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
+                                     json={"itemIds": [self.latest_free_item["collectibleItemId"]]},
                                      headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"]},
                                      cookies={".ROBLOSECURITY": self.accounts[str(random.randint(1, len(self.accounts)))]["cookie"]}, ssl = False)
-                        try:
+                          try:
                            da = await productid_response.json(content_type='application/json')
                            productid_data = da[0]
-                        except (json.JSONDecodeError, aiohttp.ContentTypeError) as e:
+                          except (json.JSONDecodeError, aiohttp.ContentTypeError) as e:
                            print(f'Error decoding JSON: {e}')
                            self.errors += 1
                       
-                        coroutines = []
-                        for i in self.accounts:
-                              coroutines.append(self.buy_item(item_id = json_response["collectibleItemId"], price = 0, user_id = self.accounts[i]["id"], creator_id = json_response['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[i]["cookie"], x_token = self.accounts[i]["xcsrf_token"]))
-                        self.task = "Item Buyer"
-                        await asyncio.gather(*coroutines)
-        await asyncio.sleep(1)
+                          coroutines = []
+                          for i in self.accounts:
+                              coroutines.append(self.buy_item(item_id = self.latest_free_item["collectibleItemId"], price = 0, user_id = self.accounts[i]["id"], creator_id = self.latest_free_item['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[i]["cookie"], x_token = self.accounts[i]["xcsrf_token"]))
+                          self.task = "Item Buyer"
+                          await asyncio.gather(*coroutines)
+        await asyncio.sleep(5)
        except aiohttp.client_exceptions.ClientConnectorError as e:
            print(f"Error connecting to host: {e}")
            self.errors
@@ -291,7 +305,7 @@ class Sniper:
                     if response.status == 429:
                        print("Rate limit hit")
                        self.total_ratelimits += 1
-                       await asyncio.sleep(30)
+                       await asyncio.sleep(20)
                        continue
                     
                     if response.status != 200:
