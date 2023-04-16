@@ -11,6 +11,7 @@ tutorial (not by me) - https://docs.google.com/document/d/16VK4WM39sgjrkdN-u2dIz
 - is asynchronous that makes it able to mass buy items
 - uses aiohttp
 - supports every device (linux, windows, mac)
+- supports discord webhooks
 
 ## usage
 - format of multiple ids:  
