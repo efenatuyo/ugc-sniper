@@ -12,7 +12,6 @@ try:
   import configparser
   from colorama import Fore, Back, Style
   import aiohttp
-  from discord_webhook import DiscordWebhook, DiscordEmbed
 
 except ModuleNotFoundError:
     print("Modules not installed properly installing now")
@@ -20,7 +19,6 @@ except ModuleNotFoundError:
     os.system("pip install configparser")
     os.system("pip install colorama")
     os.system("pip install aiohttp")
-    os.system("pip install discord_webhook")
 
 config = configparser.ConfigParser()
 config.read('config.ini')
