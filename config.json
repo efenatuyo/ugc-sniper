@@ -1,0 +1,6 @@
+{
+    "webhook": {
+        "enabled": false,
+        "url": "insert discord webhook URL here"
+    }
+}
