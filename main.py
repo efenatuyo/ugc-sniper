@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 6.1.0
+# version 6.1.1
 
 try:
   import datetime
@@ -9,23 +9,21 @@ try:
   import asyncio
   import random
   import requests
-  import configparser
   from colorama import Fore, Back, Style
   import aiohttp
 
 except ModuleNotFoundError:
     print("Modules not installed properly installing now")
     os.system("pip install requests")
-    os.system("pip install configparser")
     os.system("pip install colorama")
     os.system("pip install aiohttp")
 
-config = configparser.ConfigParser()
-config.read('config.ini')
+with open("config.json") as file:
+    config = json.load(file)
 class Sniper:
     def __init__(self) -> None:
-        self.webhookEnabled = False if not "configWebhook" in config or not bool(config["configWebhook"]["enabled"] == "on") else True
-        self.webhookUrl = config["configWebhook"]["webhook"] if self.webhookEnabled else None
+        self.webhookEnabled = False if not config["webhook"] or config["webhook"]["enabled"] == False else True
+        self.webhookUrl = config["webhook"]["url"] if self.webhookEnabled else None
         self.accounts = None
         self.items = self._load_items()
         self.title = ("""
@@ -47,17 +45,24 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "6.1.0"
+        self.version = "6.1.1"
         self.task = None
         self.scraped_ids = []
         self.latest_free_item = {}
         self._setup_accounts()
+
+        self.iteminfo = self._load_info()
+        if self.webhookEnabled:
+            dumps = json.dumps(self.iteminfo, indent=2)
+            requests.post(self.webhookUrl, json={"content":None,"embeds":[{"title":"Hello World!","description":f"Loaded item information:```json\n{dumps}\n```","color":16776960,"footer":{"text":"Xolo's Sniper"}}]})
+        
         # / couldn't fix errors aka aiohttp does not support proxies
         # self.proxylist = open("proxylist.txt").read().splitlines()
         # self.workingProxies = []
         # asyncio.run(self.start_proxy())
         # print(self.workingProxies)
         self.check_version()
+        
         # asyncio.run(self.start())
         asyncio.run(self.start())
         
@@ -126,6 +131,25 @@ class Sniper:
     def _load_items(self) -> list:
         with open('limiteds.txt', 'r') as f:
             return [line.strip() for line in f.readlines()]
+        
+    def _load_info(self) -> dict:
+        currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
+        iteminfo = {}
+        for limited in self.items:
+            info = requests.post("https://catalog.roblox.com/v1/catalog/items/details", json={"items": [{"itemType": "Asset", "id": limited}]}, headers={"x-csrf-token": currentAccount['xcsrf_token']}, cookies={".ROBLOSECURITY": currentAccount["cookie"]})
+            thumbnail = requests.get(f"https://thumbnails.roblox.com/v1/assets?assetIds={limited}&returnPolicy=PlaceHolder&size=512x512&format=Png&isCircular=false", headers={"x-csrf-token": currentAccount['xcsrf_token']}, cookies={".ROBLOSECURITY": currentAccount["cookie"]})
+            iteminfo[str(limited)] = {}
+            if info.status_code == 200:
+                iteminfo[limited]["name"] = info.json()["data"][0]["name"]
+            else: 
+                iteminfo[limited]["name"] = f"https://www.roblox.com/catalog/{limited}"
+
+            if thumbnail.status_code == 200:
+                iteminfo[limited]["img"] = thumbnail.json()["data"][0]["imageUrl"]
+            else:
+                iteminfo[limited]["img"] = None
+        
+        return iteminfo
             
     async def _get_user_id(self, cookie) -> str:
        async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as client:
@@ -232,13 +256,10 @@ class Sniper:
                        print(f"Purchase successful. Response: {json_response}.")
                        self.buys += 1
                        if self.webhookEnabled:
-                            currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
-                            headers = {"x-csrf-token": currentAccount['xcsrf_token']}
-                            cookies = {".ROBLOSECURITY": currentAccount["cookie"]}
-                            info = requests.post("https://catalog.roblox.com/v1/catalog/items/details", json={"items": [{"itemType": "Asset", "id": item_id}]}, headers=headers, cookies=cookies)
-                            thumbnail = requests.get(f"https://thumbnails.roblox.com/v1/assets?assetIds={item_id}&returnPolicy=PlaceHolder&size=512x512&format=Png&isCircular=false", headers=headers, cookies=cookies)
-                            if info.status_code == 200 and thumbnail.status_code == 200:
-                                requests.post(self.webhookUrl, json={"content":None, "embeds":[ { "title":f"{info.json()['data'][0]['name']}", "url":f"https://www.roblox.com/catalog/{item_id}", "color":65280, "fields":[ { "name":"purchaseResult", "value":f"{json_response['purchaseResult']}", "inline":True }, { "name":"purchased", "value":f"{json_response['purchased']}", "inline":True }, { "name":"errorMessage", "value":f"{json_response['errorMessage']}" } ], "author":{ "name":"Purchased limited successfully!" }, "footer":{ "text":"Xolo's Sniper" }, "thumbnail":{ "url":f"{thumbnail.json()['data'][0]['imageUrl']}" } } ]})
+                            if self.iteminfo[item_id]:
+                                requests.post(self.webhookUrl, json={"content":None,"embeds":[{"title":f"{self.iteminfo[item_id]['name']}","url":f"https://www.roblox.com/catalog/{item_id}","color":65280,"fields":[{"name":"purchaseResult","value":f"{json_response['purchaseResult']}","inline":True},{"name":"purchased","value":f"{json_response['purchased']}","inline":True},{"name":"errorMessage","value":f"{json_response['errorMessage']}"}],"author":{"name":"Purchased limited successfully!"},"footer":{"text":"Xolo's Sniper"},"thumbnail":{"url":f"{self.iteminfo[item_id]['img']}"}}]})
+                            else:
+                                requests.post(self.webhookUrl, json={"content":None,"embeds":[{"title":f"https://www.roblox.com/catalog/{item_id}","url":f"https://www.roblox.com/catalog/{item_id}","color":65280,"fields":[{"name":"purchaseResult","value":f"{json_response['purchaseResult']}","inline":True},{"name":"purchased","value":f"{json_response['purchased']}","inline":True},{"name":"errorMessage","value":f"{json_response['errorMessage']}"}],"author":{"name":"Purchased limited from scraper successfully!"},"footer":{"text":"Xolo's Sniper"},"thumbnail":{"url":f"{None}"}}]})
     
     async def auto_search(self) -> None:
       while True:
