@@ -51,8 +51,8 @@ class Sniper:
         self.latest_free_item = {}
         self._setup_accounts()
 
-        self.iteminfo = self._load_info()
         if self.webhookEnabled:
+            self.iteminfo = self._load_info()
             dumps = json.dumps(self.iteminfo, indent=2)
             requests.post(self.webhookUrl, json={"content":None,"embeds":[{"title":"Hello World!","description":f"Loaded item information:```json\n{dumps}\n```","color":16776960,"footer":{"text":"Xolo's Sniper"}}]})
         
