@@ -326,17 +326,17 @@ class Sniper:
        except aiohttp.client_exceptions.ClientConnectorError as e:
             print(f"Error connecting to host: {e}")
             self.errors += 1
-            await asyncio.sleep(20)
+            await asyncio.sleep(5)
             continue
        except aiohttp.client_exceptions.ServerDisconnectedError as e:
             print(f"Server disconnected error: {e}")
             self.errors += 1
-            await asyncio.sleep(20)
+            await asyncio.sleep(5)
             continue
        except aiohttp.client_exceptions.ClientOSError as e:
             print(f"Client OS error: {e}")
             self.errors += 1
-            await asyncio.sleep(20)
+            await asyncio.sleep(5)
             continue
                     
     async def given_id_sniper(self) -> None:
@@ -381,7 +381,7 @@ class Sniper:
                        elif jsonr.get("errors")[0]["message"] is not None and jsonr.get("errors")[0]["message"] == 'Invalid asset type id.':
                            raise Exception("Invalid Item Id given")
                            
-                       await asyncio.sleep(10)
+                       await asyncio.sleep(5)
                        continue
                     
                     try:
