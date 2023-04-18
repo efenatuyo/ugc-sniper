@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 6.1.1
+# version 7.0.0
 
 try:
   import datetime
@@ -18,10 +18,11 @@ except ModuleNotFoundError:
     os.system("pip install colorama")
     os.system("pip install aiohttp")
 
-with open("config.json") as file:
-    config = json.load(file)
+
 class Sniper:
     def __init__(self) -> None:
+        with open("config.json") as file:
+             config = json.load(file)
         self.webhookEnabled = False if not config["webhook"] or config["webhook"]["enabled"] == False else True
         self.webhookUrl = config["webhook"]["url"] if self.webhookEnabled else None
         self.accounts = None
@@ -45,16 +46,11 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "6.1.1"
+        self.version = "7.0.0"
         self.task = None
         self.scraped_ids = []
         self.latest_free_item = {}
         self._setup_accounts()
-
-        self.iteminfo = self._load_info()
-        if self.webhookEnabled:
-            dumps = json.dumps(self.iteminfo, indent=2)
-            requests.post(self.webhookUrl, json={"content":None,"embeds":[{"title":"Hello World!","description":f"Loaded item information:```json\n{dumps}\n```","color":16776960,"footer":{"text":"Xolo's Sniper"}}]})
         
         # / couldn't fix errors aka aiohttp does not support proxies
         # self.proxylist = open("proxylist.txt").read().splitlines()
@@ -212,7 +208,7 @@ class Sniper:
         
         
          data = {
-              "collectibleItemId": item_id,
+               "collectibleItemId": item_id,
                "expectedCurrency": 1,
                "expectedPrice": price,
                "expectedPurchaserId": user_id,
@@ -230,10 +226,18 @@ class Sniper:
                     return
                  
                 data["idempotencyKey"] = str(uuid.uuid4())
-                response = await client.post(f"https://apis.roblox.com/marketplace-sales/v1/item/{item_id}/purchase-item",
+                
+                try:
+                    response = await client.post(f"https://apis.roblox.com/marketplace-sales/v1/item/{item_id}/purchase-item",
                            json=data,
                            headers={"x-csrf-token": x_token},
                            cookies={".ROBLOSECURITY": cookie}, ssl = False)
+                
+                except aiohttp.ClientConnectorError as e:
+                    self.errors += 1
+                    print(f"Connection error encountered: {e}. Retrying purchase...")
+                    total_errors += 1
+                    continue
                     
                 if response.status == 429:
                        print("Ratelimit encountered. Retrying purchase in 0.5 seconds...")
@@ -256,10 +260,20 @@ class Sniper:
                        print(f"Purchase successful. Response: {json_response}.")
                        self.buys += 1
                        if self.webhookEnabled:
-                            if self.iteminfo[item_id]:
-                                requests.post(self.webhookUrl, json={"content":None,"embeds":[{"title":f"{self.iteminfo[item_id]['name']}","url":f"https://www.roblox.com/catalog/{item_id}","color":65280,"fields":[{"name":"purchaseResult","value":f"{json_response['purchaseResult']}","inline":True},{"name":"purchased","value":f"{json_response['purchased']}","inline":True},{"name":"errorMessage","value":f"{json_response['errorMessage']}"}],"author":{"name":"Purchased limited successfully!"},"footer":{"text":"Xolo's Sniper"},"thumbnail":{"url":f"{self.iteminfo[item_id]['img']}"}}]})
-                            else:
-                                requests.post(self.webhookUrl, json={"content":None,"embeds":[{"title":f"https://www.roblox.com/catalog/{item_id}","url":f"https://www.roblox.com/catalog/{item_id}","color":65280,"fields":[{"name":"purchaseResult","value":f"{json_response['purchaseResult']}","inline":True},{"name":"purchased","value":f"{json_response['purchased']}","inline":True},{"name":"errorMessage","value":f"{json_response['errorMessage']}"}],"author":{"name":"Purchased limited from scraper successfully!"},"footer":{"text":"Xolo's Sniper"},"thumbnail":{"url":f"{None}"}}]})
+                            embed_data = {
+                                "title": "New Item Purchased with Xolo Sniper",
+                                "url": f"https://www.roblox.com/catalog/{item_id}/Xolo-Sniper",
+                                "color": 65280,
+                                "author": {
+                                    "name": "Purchased limited successfully!"
+                                },
+                                "footer": {
+                                "text": "Xolo's Sniper"
+                                }
+                            }
+
+                            requests.post(self.webhookUrl, json={"content": None, "embeds": [embed_data]})
+
     
     async def auto_search(self) -> None:
       while True:
@@ -279,38 +293,56 @@ class Sniper:
                       if item["id"] not in self.scraped_ids:
                           print(f"Found new free item: {item['name']} (ID: {item['id']})")
                           self.latest_free_item = item
-                          self.scraped_ids.append(item['id'])
+                          self.scraped_ids.append(item)
                           
                           if self.latest_free_item.get("priceStatus", "Off Sale") == "Off Sale":
                             continue
                         
                           if self.latest_free_item.get("collectibleItemId") is None:
                               continue
-                          
-                          productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
+                          try:
+                            productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                      json={"itemIds": [self.latest_free_item["collectibleItemId"]]},
                                      headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"]},
                                      cookies={".ROBLOSECURITY": self.accounts[str(random.randint(1, len(self.accounts)))]["cookie"]}, ssl = False)
-                          try:
-                           da = await productid_response.json(content_type='application/json')
-                           productid_data = da[0]
+                            da = await productid_response.json(content_type='application/json')
+                            productid_data = da[0]
+
                           except (json.JSONDecodeError, aiohttp.ContentTypeError) as e:
                            print(f'Error decoding JSON: {e}')
                            self.errors += 1
-                      
+                          except aiohttp.client_exceptions.ClientConnectorError as e:
+                              print(f'Error connecting to the host: {e}')
+                              self.errors += 1
+                              continue
+                          
                           coroutines = []
                           for i in self.accounts:
                               coroutines.append(self.buy_item(item_id = self.latest_free_item["collectibleItemId"], price = 0, user_id = self.accounts[i]["id"], creator_id = self.latest_free_item['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[i]["cookie"], x_token = self.accounts[i]["xcsrf_token"]))
                           self.task = "Item Buyer"
                           await asyncio.gather(*coroutines)
+
         await asyncio.sleep(5)
        except aiohttp.client_exceptions.ClientConnectorError as e:
-           print(f"Error connecting to host: {e}")
-           self.errors
+            print(f"Error connecting to host: {e}")
+            self.errors += 1
+            await asyncio.sleep(20)
+            continue
+       except aiohttp.client_exceptions.ServerDisconnectedError as e:
+            print(f"Server disconnected error: {e}")
+            self.errors += 1
+            await asyncio.sleep(20)
+            continue
+       except aiohttp.client_exceptions.ClientOSError as e:
+            print(f"Client OS error: {e}")
+            self.errors += 1
+            await asyncio.sleep(20)
+            continue
                     
     async def given_id_sniper(self) -> None:
         while True:
-         async with aiohttp.ClientSession() as session:
+         try:
+          async with aiohttp.ClientSession() as session:
             self.task = "Item Scraper & Searcher"
             t0 = asyncio.get_event_loop().time()
 
@@ -384,6 +416,18 @@ class Sniper:
                  t1 = asyncio.get_event_loop().time()
                  self.last_time = round(t1 - t0, 3)
                  await asyncio.sleep(1)
+         except aiohttp.ClientConnectorError as e:
+             print(f'Connection error: {e}')
+             self.errors += 1
+             continue
+         except aiohttp.ContentTypeError as e:
+             print(f'Content type error: {e}')
+             self.errors += 1
+             continue
+         except aiohttp.ClientResponseError as e:
+             print(f'Response error: {e}')
+             self.errors += 1
+             continue
     
     async def start(self):
             coroutines = []
