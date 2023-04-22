@@ -1,5 +1,5 @@
-# made by xolo#4942
-# version 7.1.0
+ # made by xolo#4942
+# version 8.0.0
 
 try:
   import datetime
@@ -20,6 +20,26 @@ except ModuleNotFoundError:
     os.system("pip install rapidjson")
 
 class Sniper:
+    class bucket:
+        def __init__(self, max_tokens: int, refill_interval: float):
+            self.max_tokens = max_tokens
+            self.tokens = max_tokens
+            self.refill_interval = refill_interval
+            self.last_refill_time = asyncio.get_event_loop().time()
+
+        async def take(self, tokens: int):
+            while True:
+                elapsed = asyncio.get_event_loop().time() - self.last_refill_time
+                if elapsed > self.refill_interval:
+                   self.tokens = self.max_tokens
+                   self.last_refill_time = asyncio.get_event_loop().time()
+
+                if self.tokens >= tokens:
+                   self.tokens -= tokens
+                   return
+                else:
+                   await asyncio.sleep(0.01)
+                
     def __init__(self) -> None:
         with open("config.json") as file:
              config = json.load(file)
@@ -45,20 +65,17 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "7.1.0"
+        self.version = "8.0.0"
         self.task = None
         self.scraped_ids = []
         self.latest_free_item = {}
         self._setup_accounts()
-        
+        self.check_version()
         # / couldn't fix errors aka aiohttp does not support proxies
         # self.proxylist = open("proxylist.txt").read().splitlines()
         # self.workingProxies = []
         # asyncio.run(self.start_proxy())
         # print(self.workingProxies)
-        self.check_version()
-        
-        # asyncio.run(self.start())
         asyncio.run(self.start())
         
     # / couldn't fix errors aka aiohttp does not support proxies
@@ -125,7 +142,7 @@ class Sniper:
         
     def _load_items(self) -> list:
         with open('limiteds.txt', 'r') as f:
-            return [line.strip() for line in f.readlines()]
+            return [line.rstrip() for line in f.readlines()]
                  
     async def _get_user_id(self, cookie) -> str:
        async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as client:
@@ -258,7 +275,8 @@ class Sniper:
      async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
       while True:
         try:
-            async with session.get("https://catalog.roblox.com/v1/search/items/details?Keyword=orange%20teal%20cyan%20red%20green%20topaz%20yellow%20wings%20maroon%20space%20dominus%20lime%20mask%20mossy%20wooden%20crimson%20salmon%20brown%20pastel%20%20ruby%20diamond%20creatorname%20follow%20catalog%20link%20rare%20emerald%20chain%20blue%20deep%20expensive%20furry%20hood%20currency%20coin%20royal%20navy%20ocean%20air%20white%20cyber%20ugc%20verified%20black%20purple%20yellow%20violet%20description%20dark%20bright%20rainbow%20pink%20cyber%20roblox%20multicolor%20light%20gradient%20grey%20gold%20cool%20indigo%20test%20hat%20limited2%20headphones%20emo%20edgy%20back%20front%20lava%20horns%20water%20waist%20face%20neck%20shoulders%20collectable&Category=11&Subcategory=19&CurrencyType=3&MaxPrice=0&salesTypeFilter=2&SortType=3&limit=30", ssl = False) as response:
+            async with session.get("https://catalog.roblox.com/v2/search/items/details?Keyword=orange%20teal%20cyan%20red%20green%20topaz%20yellow%20wings%20maroon%20space%20dominus%20lime%20mask%20mossy%20wooden%20crimson%20salmon%20brown%20pastel%20%20ruby%20diamond%20creatorname%20follow%20catalog%20link%20rare%20emerald%20chain%20blue%20deep%20expensive%20furry%20hood%20currency%20coin%20royal%20navy%20ocean%20air%20white%20cyber%20ugc%20verified%20black%20purple%20yellow%20violet%20description%20dark%20bright%20rainbow%20pink%20cyber%20roblox%20multicolor%20light%20gradient%20grey%20gold%20cool%20indigo%20test%20hat%20limited2%20headphones%20emo%20edgy%20back%20front%20lava%20horns%20water%20waist%20face%20neck%20shoulders%20collectable&Category=11&Subcategory=19&CurrencyType=3&MaxPrice=0&salesTypeFilter=2&SortType=3&limit=120", ssl = False) as response:
+                  await self.ratelimit.take(1)
                   response.raise_for_status()
                    
                   items = (json.loads(await response.text())['data'])
@@ -274,7 +292,7 @@ class Sniper:
                         
                           if self.latest_free_item.get("collectibleItemId") is None:
                               continue
-                          
+                          await self.ratelimit.take(1)
                           productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                      json={"itemIds": [self.latest_free_item["collectibleItemId"]]},
                                      headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"], 'Accept': "application/json"},
@@ -297,6 +315,7 @@ class Sniper:
         except aiohttp.client_exceptions.ClientResponseError as e:
             print(f"Response Error: {e}")
             self.errors += 1
+            await asyncio.sleep(5)
         finally:
             self.checks += 1
             await asyncio.sleep(5)
@@ -308,21 +327,22 @@ class Sniper:
         try:
                 self.task = "Item Scraper & Searcher"
                 t0 = asyncio.get_event_loop().time()
-
+                
                 for currentItem in self.items:
                     if not currentItem.isdigit():
                         raise Exception(f"Invalid item id given ID: {currentItem}")
-
+                    
+                    await self.ratelimit.take(1)
                     currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
                     async with session.post("https://catalog.roblox.com/v1/catalog/items/details",
                                            json={"items": [{"itemType": "Asset", "id": int(currentItem)}]},
                                            headers={"x-csrf-token": currentAccount['xcsrf_token'], 'Accept': "application/json"},
                                            cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False) as response:
-
                         response.raise_for_status()
                         response_text = await response.text()
                         json_response = json.loads(response_text)['data'][0]
                         if json_response.get("priceStatus") != "Off Sale" and 0 if json_response.get('unitsAvailableForConsumption') is None else json_response.get('unitsAvailableForConsumption') > 0:
+                            await self.ratelimit.take(1)
                             productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                                                      json={"itemIds": [json_response["collectibleItemId"]]},
                                                                      headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json"},
@@ -342,19 +362,17 @@ class Sniper:
             print(f'Content type error: {e}')
             self.errors += 1
         except aiohttp.ClientResponseError as e:
-            print(f'Response error: {e}')
-            self.errors += 1
-        except aiohttp.client_exceptions.ClientResponseError as e:
-            print(f"Response Error: {e}")
+            pass
         finally:
             self.checks += 1
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5)
              
     
-    async def start(self):
+    async def start(self):   
+            self.ratelimit = self.bucket(max_tokens=60, refill_interval=60)     
             coroutines = []
             coroutines.append(self.given_id_sniper())
-            coroutines.append(self.auto_search())
+            # coroutines.append(self.auto_search())
             coroutines.append(self.auto_update())
             await asyncio.gather(*coroutines)
     
@@ -364,7 +382,7 @@ class Sniper:
                 raise Exception("x_csrf_token couldn't be generated")
             os.system(self.clear)
             self._print_stats()
-            await asyncio.sleep(2)
+            await asyncio.sleep(0.5)
         
 sniper = Sniper()
 sniper
