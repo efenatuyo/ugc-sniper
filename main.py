@@ -1,4 +1,4 @@
- # made by xolo#4942
+# made by xolo#4942
 # version 8.0.0
 
 try:
@@ -8,14 +8,14 @@ try:
   import asyncio
   import random
   import requests
-  from colorama import Fore, Back, Style
+  from rgbprint import gradient_print, Color
   import aiohttp
   import json   
 
 except ModuleNotFoundError:
     print("Modules not installed properly installing now")
     os.system("pip install requests")
-    os.system("pip install colorama")
+    os.system("pip install rgbprint")
     os.system("pip install aiohttp")
     os.system("pip install rapidjson")
 
@@ -43,28 +43,30 @@ class Sniper:
     def __init__(self) -> None:
         with open("config.json") as file:
              config = json.load(file)
+        self.clear = "cls" if os.name == 'nt' else "clear"
+        if os.name == "nt":
+            os.system("title Moon Sniper")
+        os.system(self.clear)
         self.webhookEnabled = False if not config["webhook"] or config["webhook"]["enabled"] == False else True
         self.webhookUrl = config["webhook"]["url"] if self.webhookEnabled else None
         self.accounts = None
         self.items = self._load_items()
-        self.title = ("""
-▒██   ██▒ ▒█████   ██▓     ▒█████             ██████  ███▄    █  ██▓ ██▓███  ▓█████  ██▀███  
-▒▒ █ █ ▒░▒██▒  ██▒▓██▒    ▒██▒  ██▒         ▒██    ▒  ██ ▀█   █ ▓██▒▓██░  ██▒▓█   ▀ ▓██ ▒ ██▒
-░░  █   ░▒██░  ██▒▒██░    ▒██░  ██▒         ░ ▓██▄   ▓██  ▀█ ██▒▒██▒▓██░ ██▓▒▒███   ▓██ ░▄█ ▒
- ░ █ █ ▒ ▒██   ██░▒██░    ▒██   ██░           ▒   ██▒▓██▒  ▐▌██▒░██░▒██▄█▓▒ ▒▒▓█  ▄ ▒██▀▀█▄  
-▒██▒ ▒██▒░ ████▓▒░░██████▒░ ████▓▒░         ▒██████▒▒▒██░   ▓██░░██░▒██▒ ░  ░░▒████▒░██▓ ▒██▒
-▒▒ ░ ░▓ ░░ ▒░▒░▒░ ░ ▒░▓  ░░ ▒░▒░▒░          ▒ ▒▓▒ ▒ ░░ ▒░   ▒ ▒ ░▓  ▒▓▒░ ░  ░░░ ▒░ ░░ ▒▓ ░▒▓░
-░░   ░▒ ░  ░ ▒ ▒░ ░ ░ ▒  ░  ░ ▒ ▒░          ░ ░▒  ░ ░░ ░░   ░ ▒░ ▒ ░░▒ ░      ░ ░  ░  ░▒ ░ ▒░
- ░    ░  ░ ░ ░ ▒    ░ ░   ░ ░ ░ ▒           ░  ░  ░     ░   ░ ░  ▒ ░░░          ░     ░░   ░ 
- ░    ░      ░ ░      ░  ░    ░ ░                 ░           ░  ░              ░  ░   ░     
-                                                                                             
-""")
+        self.title = ("""     ▄▄▄▄███▄▄▄▄    ▄██████▄   ▄██████▄  ███▄▄▄▄           ▄████████ ███▄▄▄▄    ▄█     ▄███████▄    ▄████████    ▄████████ 
+   ▄██▀▀▀███▀▀▀██▄ ███    ███ ███    ███ ███▀▀▀██▄        ███    ███ ███▀▀▀██▄ ███    ███    ███   ███    ███   ███    ███           _.._
+   ███   ███   ███ ███    ███ ███    ███ ███   ███        ███    █▀  ███   ███ ███▌   ███    ███   ███    █▀    ███    ███         .' .-'`
+   ███   ███   ███ ███    ███ ███    ███ ███   ███        ███        ███   ███ ███▌   ███    ███  ▄███▄▄▄      ▄███▄▄▄▄██▀        /  /
+   ███   ███   ███ ███    ███ ███    ███ ███   ███      ▀███████████ ███   ███ ███▌ ▀█████████▀  ▀▀███▀▀▀     ▀▀███▀▀▀▀▀          |  |
+   ███   ███   ███ ███    ███ ███    ███ ███   ███               ███ ███   ███ ███    ███          ███    █▄  ▀███████████        \  '.___.;
+   ███   ███   ███ ███    ███ ███    ███ ███   ███         ▄█    ███ ███   ███ ███    ███          ███    ███   ███    ███         '._  _.'
+    ▀█   ███   █▀   ▀██████▀   ▀██████▀   ▀█   █▀        ▄████████▀   ▀█   █▀  █▀    ▄████▀        ██████████   ███    ███            ``
+                                                                                                                ███    ███ """)
+        self.subtitle = ("""
+						    > the best one out there (yet again) <""")
         self.checks = 0
         self.buys = 0
         self.request_method = 2
         self.last_time = 0
         self.errors = 0
-        self.clear = "cls" if os.name == 'nt' else "clear"
         self.version = "8.0.0"
         self.task = None
         self.scraped_ids = []
@@ -102,16 +104,17 @@ class Sniper:
     #  await asyncio.gather(*coroutines)
     
     def check_version(self):
-        self.task = "Github Checker"
+        self.task = "GitHub Checker"
         self._print_stats()
         response = requests.get("https://pastebin.com/raw/MXFsQ0TQ")
         
         if response.status_code != 200:
             pass
-        print(response.text)
         if not response.text == self.version:
-                print("NEW UPDATED VERSION PLEASE UPDATE YOUR FILE")
-                print("will continue in 5 seconds")
+                print(f"""{Color(0xf2f24e)}! NEW UPDATED VERSION ({response.text}) !
+{Color(0x7e33ff)}Please update your version at {Color(0xf2f24e)}https://github.com/efenatuyo/ugc-sniper
+{Color(0x7e33ff)}Continuing in 5 seconds.{Color(0xffffff)}
+""")
                 import time
                 time.sleep(5)
         
@@ -153,15 +156,22 @@ class Sniper:
            return data.get('id')
     
     def _print_stats(self) -> None:
-        print(f"Version: {self.version}")
-        print(Fore.GREEN + Style.BRIGHT + self.title)
-        print(Fore.RESET + Style.RESET_ALL)
-        print(Style.BRIGHT + f"                           [ Total buys: {Fore.GREEN}{Style.BRIGHT}{self.buys}{Fore.WHITE}{Style.BRIGHT} ]")
-        print(Style.BRIGHT + f"                           [ Total errors: {Fore.RED}{Style.BRIGHT}{self.errors}{Fore.WHITE}{Style.BRIGHT} ]")
-        print(Style.BRIGHT + f"                           [ Last Speed: {Fore.YELLOW}{Style.BRIGHT}{self.last_time}{Fore.WHITE}{Style.BRIGHT} ]")
-        print(Style.BRIGHT + f"                           [ Total price checks: {Fore.YELLOW}{Style.BRIGHT}{self.checks}{Fore.WHITE}{Style.BRIGHT} ]")
         print()
-        print(Style.BRIGHT + f"                           [ Current Task: {Fore.GREEN}{Style.BRIGHT}{self.task}{Fore.WHITE}{Style.BRIGHT} ]")
+        gradient_print(self.title, start_color=Color(0x5916cc), end_color=Color(0xf2f24e))
+        gradient_print(self.subtitle, start_color=Color(0x5916cc), end_color=Color(0xf2f24e))
+        print(f""" {Color(0xffffff)}-----------
+  {Color(0x7e33ff)}Script  {Color(0xffffff)}:  {Color(0xf2f24e)}xolo#4249
+  {Color(0x7e33ff)}Theme   {Color(0xffffff)}:  {Color(0xf2f24e)}SleepyLuc#9967
+ {Color(0xffffff)}-----------
+  {Color(0x7e33ff)}Version {Color(0xffffff)}:  {Color(0xf2f24e)}{self.version}
+  {Color(0x7e33ff)}Task    {Color(0xffffff)}:  {Color(0xf2f24e)}{self.task}
+ {Color(0xffffff)}-----------
+  {Color(0x7e33ff)}Snipes  {Color(0xffffff)}:  {Color(0xf2f24e)}{self.buys}
+  {Color(0x7e33ff)}Errors  {Color(0xffffff)}:  {Color(0xf2f24e)}{self.errors}
+  {Color(0x7e33ff)}Speed   {Color(0xffffff)}:  {Color(0xf2f24e)}{self.last_time}
+  {Color(0x7e33ff)}Checks  {Color(0xffffff)}:  {Color(0xf2f24e)}{self.checks}
+ {Color(0xffffff)}-----------""")
+        print()
             
     async def _get_xcsrf_token(self, cookie) -> dict:
         async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as client:
@@ -250,10 +260,10 @@ class Sniper:
                   
                 if not json_response["purchased"]:
                        self.errors += 1
-                       print(f"Purchase failed. Response: {json_response}. Retrying purchase...")
+                       print(f"{Color(0xff0000)}Purchase failed. Response: {json_response}. Retrying purchase...{Color(0xffffff)}")
                        total_errors += 1
                 else:
-                       print(f"Purchase successful. Response: {json_response}.")
+                       print(f"{Color(0x00ff00)}Purchase successful! Response: {json_response}{Color(0xffffff)}")
                        self.buys += 1
                        if self.webhookEnabled:
                             embed_data = {
