@@ -13,7 +13,7 @@ try:
   import json   
 
 except ModuleNotFoundError:
-    print("Modules not installed properly installing now")
+    print("Modules not installed properly, installing now.")
     os.system("pip install requests")
     os.system("pip install rgbprint")
     os.system("pip install aiohttp")
@@ -192,7 +192,7 @@ class Sniper:
                 self.accounts[i]["created"] = response["created"]
                 return True
             except Exception as e:
-                print(f"{e.__class__.__name__}: {e}")
+                print(f"{Color(0xff0000)}{e.__class__.__name__}: {e}{Color(0xffffff)}")
                 return False
         return True
       return False
@@ -228,7 +228,7 @@ class Sniper:
          async with aiohttp.ClientSession() as client:   
             while True:
                 if total_errors >= 10:
-                    print("Too many errors encountered. Aborting purchase.")
+                    print(f"{Color(0xff8080)}Too many errors encountered. Aborting purchase.{Color(0xffffff)}")
                     return
                  
                 data["idempotencyKey"] = str(uuid.uuid4())
@@ -241,12 +241,12 @@ class Sniper:
                 
                 except aiohttp.ClientConnectorError as e:
                     self.errors += 1
-                    print(f"Connection error encountered: {e}. Retrying purchase...")
+                    print(f"{Color(0xff0000)}Connection error encountered: {e}. Retrying purchase...{Color(0xffffff)}")
                     total_errors += 1
                     continue
                     
                 if response.status == 429:
-                       print("Ratelimit encountered. Retrying purchase in 0.5 seconds...")
+                       print(f"{Color(0xffff00)}Ratelimit encountered. Retrying purchase in 0.5 seconds...{Color(0xffffff)}")
                        await asyncio.sleep(0.5)
                        continue
             
@@ -254,7 +254,7 @@ class Sniper:
                       json_response = await response.json()
                 except aiohttp.ContentTypeError as e:
                       self.errors += 1
-                      print(f"JSON decode error encountered: {e}. Retrying purchase...")
+                      print(f"{Color(0xff0000)}JSON decode error encountered: {e}. Retrying purchase...{Color(0xffffff)}")
                       total_errors += 1
                       continue
                   
@@ -293,7 +293,7 @@ class Sniper:
                   
                   for item in items:
                       if item["id"] not in self.scraped_ids:
-                          print(f"Found new free item: {item['name']} (ID: {item['id']})")
+                          print(f"{Color(0xff0000)}Found new free item: {item['name']} (ID: {item['id']}){Color(0xffffff)}")
                           self.latest_free_item = item
                           self.scraped_ids.append(item)
                           
@@ -314,16 +314,16 @@ class Sniper:
                           await asyncio.gather(*coroutines)
                           
         except aiohttp.client_exceptions.ClientConnectorError as e:
-            print(f"Error connecting to host: {e}")
+            print(f"{Color(0xff0000)}Error connecting to host: {e}{Color(0xffffff)}")
             self.errors += 1
         except aiohttp.client_exceptions.ServerDisconnectedError as e:
-            print(f"Server disconnected error: {e}")
+            print(f"{Color(0xff0000)}Server disconnected error: {e}{Color(0xffffff)}")
             self.errors += 1
         except aiohttp.client_exceptions.ClientOSError as e:
-            print(f"Client OS error: {e}")
+            print(f"{Color(0xff0000)}Client OS error: {e}{Color(0xffffff)}")
             self.errors += 1
         except aiohttp.client_exceptions.ClientResponseError as e:
-            print(f"Response Error: {e}")
+            print(f"{Color(0xff0000)}Response Error: {e}{Color(0xffffff)}")
             self.errors += 1
             await asyncio.sleep(5)
         finally:
@@ -366,10 +366,10 @@ class Sniper:
                     t1 = asyncio.get_event_loop().time()
                     self.last_time = round(t1 - t0, 3)
         except aiohttp.ClientConnectorError as e:
-            print(f'Connection error: {e}')
+            print(f'{Color(0xff0000)}Connection error: {e}{Color(0xffffff)}')
             self.errors += 1
         except aiohttp.ContentTypeError as e:
-            print(f'Content type error: {e}')
+            print(f'{Color(0xff0000)}Content type error: {e}{Color(0xffffff)}')
             self.errors += 1
         except aiohttp.ClientResponseError as e:
             pass
