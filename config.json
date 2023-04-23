@@ -1,7 +1,7 @@
 {
     "webhook": {
         "enabled": true,
-        "url": ""
+        "url": "insert discord webhook URL here"
     },
     "items": [
         {
@@ -15,10 +15,13 @@
     ],
     "accounts": [
         {
-            "cookie": ""
+            "cookie": "insert cookie 1 here"
+        },
+        {
+            "cookie": "insert cookie 2 here"
         }
     ], 
     "title": {
-        "minimal": false
+        "compact": false
     }
 }
