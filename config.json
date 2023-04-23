@@ -1,6 +1,21 @@
 {
     "webhook": {
-        "enabled": false,
-        "url": "insert discord webhook URL here"
-    }
+        "enabled": true,
+        "url": ""
+    },
+    "items": [
+        {
+            "id": "12858566277",
+            "start": "2023-04-23 16:30:00"
+        },
+        {
+            "id": "12858566277",
+            "start": null
+        }
+    ],
+    "accounts": [
+        {
+            "cookie": ""
+        }
+    ]
 }
