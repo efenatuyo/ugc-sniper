@@ -45,22 +45,32 @@ class Sniper:
              config = json.load(file)
         self.clear = "cls" if os.name == 'nt' else "clear"
         if os.name == "nt":
-            os.system("title Moon Sniper")
+            os.system("title Xolo Sniper")
         os.system(self.clear)
         self.webhookEnabled = False if not config["webhook"] or config["webhook"]["enabled"] == False else True
         self.webhookUrl = config["webhook"]["url"] if self.webhookEnabled else None
         self.accounts = None
         self.items = self._load_items()
-        self.title = ("""     ▄▄▄▄███▄▄▄▄    ▄██████▄   ▄██████▄  ███▄▄▄▄           ▄████████ ███▄▄▄▄    ▄█     ▄███████▄    ▄████████    ▄████████ 
-   ▄██▀▀▀███▀▀▀██▄ ███    ███ ███    ███ ███▀▀▀██▄        ███    ███ ███▀▀▀██▄ ███    ███    ███   ███    ███   ███    ███           _.._
-   ███   ███   ███ ███    ███ ███    ███ ███   ███        ███    █▀  ███   ███ ███▌   ███    ███   ███    █▀    ███    ███         .' .-'`
-   ███   ███   ███ ███    ███ ███    ███ ███   ███        ███        ███   ███ ███▌   ███    ███  ▄███▄▄▄      ▄███▄▄▄▄██▀        /  /
-   ███   ███   ███ ███    ███ ███    ███ ███   ███      ▀███████████ ███   ███ ███▌ ▀█████████▀  ▀▀███▀▀▀     ▀▀███▀▀▀▀▀          |  |
-   ███   ███   ███ ███    ███ ███    ███ ███   ███               ███ ███   ███ ███    ███          ███    █▄  ▀███████████        \  '.___.;
-   ███   ███   ███ ███    ███ ███    ███ ███   ███         ▄█    ███ ███   ███ ███    ███          ███    ███   ███    ███         '._  _.'
-    ▀█   ███   █▀   ▀██████▀   ▀██████▀   ▀█   █▀        ▄████████▀   ▀█   █▀  █▀    ▄████▀        ██████████   ███    ███            ``
-                                                                                                                ███    ███ """)
-        self.subtitle = ("""
+        self.title = ("""  
+  ▀████    ▐████▀  ▄██████▄   ▄█        ▄██████▄  
+    ███▌   ████▀  ███    ███ ███       ███    ███           _.._
+     ███  ▐███    ███    ███ ███       ███    ███         .' .-'`
+     ▀███▄███▀    ███    ███ ███       ███    ███        /  /
+     ████▀██▄     ███    ███ ███       ███    ███        |  |
+    ▐███  ▀███    ███    ███ ███       ███    ███        \  '.___.;
+   ▄███     ███▄  ███    ███ ███▌    ▄ ███    ███         '._  _.'
+  ████       ███▄  ▀██████▀  █████▄▄██  ▀██████▀             ``
+                             ▀                    
+		> the best one out there (yet again) <""") if config["title"]["minimal"] else ("""  
+  ▀████    ▐████▀  ▄██████▄   ▄█        ▄██████▄          ▄████████ ███▄▄▄▄    ▄█     ▄███████▄    ▄████████    ▄████████ 
+    ███▌   ████▀  ███    ███ ███       ███    ███        ███    ███ ███▀▀▀██▄ ███    ███    ███   ███    ███   ███    ███           _.._
+     ███  ▐███    ███    ███ ███       ███    ███        ███    █▀  ███   ███ ███▌   ███    ███   ███    █▀    ███    ███         .' .-'`
+     ▀███▄███▀    ███    ███ ███       ███    ███        ███        ███   ███ ███▌   ███    ███  ▄███▄▄▄      ▄███▄▄▄▄██▀        /  /
+     ████▀██▄     ███    ███ ███       ███    ███      ▀███████████ ███   ███ ███▌ ▀█████████▀  ▀▀███▀▀▀     ▀▀███▀▀▀▀▀          |  |
+    ▐███  ▀███    ███    ███ ███       ███    ███               ███ ███   ███ ███    ███          ███    █▄  ▀███████████        \  '.___.;
+   ▄███     ███▄  ███    ███ ███▌    ▄ ███    ███         ▄█    ███ ███   ███ ███    ███          ███    ███   ███    ███         '._  _.'
+  ████       ███▄  ▀██████▀  █████▄▄██  ▀██████▀        ▄████████▀   ▀█   █▀  █▀    ▄████▀        ██████████   ███    ███            ``
+                             ▀                                                                                 ███    ███ 
 						    > the best one out there (yet again) <""")
         self.checks = 0
         self.buys = 0
@@ -156,10 +166,9 @@ class Sniper:
            return data.get('id')
     
     def _print_stats(self) -> None:
-        print()
         gradient_print(self.title, start_color=Color(0x5916cc), end_color=Color(0xf2f24e))
-        gradient_print(self.subtitle, start_color=Color(0x5916cc), end_color=Color(0xf2f24e))
-        print(f""" {Color(0xffffff)}-----------
+        print(f""" 
+ {Color(0xffffff)}-----------
   {Color(0x7e33ff)}Script  {Color(0xffffff)}:  {Color(0xf2f24e)}xolo#4249
   {Color(0x7e33ff)}Theme   {Color(0xffffff)}:  {Color(0xf2f24e)}SleepyLuc#9967
  {Color(0xffffff)}-----------
@@ -170,9 +179,9 @@ class Sniper:
   {Color(0x7e33ff)}Errors  {Color(0xffffff)}:  {Color(0xf2f24e)}{self.errors}
   {Color(0x7e33ff)}Speed   {Color(0xffffff)}:  {Color(0xf2f24e)}{self.last_time}
   {Color(0x7e33ff)}Checks  {Color(0xffffff)}:  {Color(0xf2f24e)}{self.checks}
- {Color(0xffffff)}-----------""")
-        print()
-            
+ {Color(0xffffff)}-----------
+""")
+
     async def _get_xcsrf_token(self, cookie) -> dict:
         async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as client:
               response = await client.post("https://accountsettings.roblox.com/v1/email", ssl = False)
