@@ -2,5 +2,8 @@
     "webhook": {
         "enabled": false,
         "url": "insert discord webhook URL here"
+    }, 
+    "title": {
+        "minimal": false
     }
 }
