@@ -17,5 +17,8 @@
         {
             "cookie": ""
         }
-    ]
+    ], 
+    "title": {
+        "minimal": false
+    }
 }

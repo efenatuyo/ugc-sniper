@@ -8,14 +8,14 @@ try:
   import asyncio
   import random
   import requests
-  from colorama import Fore, Back, Style
+  from rgbprint import gradient_print, Color
   import aiohttp
   import json   
 
 except ModuleNotFoundError:
     print("Modules not installed properly installing now")
     os.system("pip install requests")
-    os.system("pip install colorama")
+    os.system("pip install rgbprint")
     os.system("pip install aiohttp")
     os.system("pip install rapidjson")
 
@@ -43,23 +43,36 @@ class Sniper:
     def __init__(self) -> None:
         with open("config.json") as file:
              self.config = json.load(file)
-        
+        if os.name == "nt":
+            os.system("title Xolo Sniper")
+            os.system("cls")
+        else: 
+            os.system("clear")
         self.webhookEnabled = False if not self.config["webhook"] or self.config["webhook"]["enabled"] == False else True
         self.webhookUrl = self.config["webhook"]["url"] if self.webhookEnabled else None
         self.accounts = None
         self.items = self._load_items()
-        self.title = ("""
-▒██   ██▒ ▒█████   ██▓     ▒█████             ██████  ███▄    █  ██▓ ██▓███  ▓█████  ██▀███  
-▒▒ █ █ ▒░▒██▒  ██▒▓██▒    ▒██▒  ██▒         ▒██    ▒  ██ ▀█   █ ▓██▒▓██░  ██▒▓█   ▀ ▓██ ▒ ██▒
-░░  █   ░▒██░  ██▒▒██░    ▒██░  ██▒         ░ ▓██▄   ▓██  ▀█ ██▒▒██▒▓██░ ██▓▒▒███   ▓██ ░▄█ ▒
- ░ █ █ ▒ ▒██   ██░▒██░    ▒██   ██░           ▒   ██▒▓██▒  ▐▌██▒░██░▒██▄█▓▒ ▒▒▓█  ▄ ▒██▀▀█▄  
-▒██▒ ▒██▒░ ████▓▒░░██████▒░ ████▓▒░         ▒██████▒▒▒██░   ▓██░░██░▒██▒ ░  ░░▒████▒░██▓ ▒██▒
-▒▒ ░ ░▓ ░░ ▒░▒░▒░ ░ ▒░▓  ░░ ▒░▒░▒░          ▒ ▒▓▒ ▒ ░░ ▒░   ▒ ▒ ░▓  ▒▓▒░ ░  ░░░ ▒░ ░░ ▒▓ ░▒▓░
-░░   ░▒ ░  ░ ▒ ▒░ ░ ░ ▒  ░  ░ ▒ ▒░          ░ ░▒  ░ ░░ ░░   ░ ▒░ ▒ ░░▒ ░      ░ ░  ░  ░▒ ░ ▒░
- ░    ░  ░ ░ ░ ▒    ░ ░   ░ ░ ░ ▒           ░  ░  ░     ░   ░ ░  ▒ ░░░          ░     ░░   ░ 
- ░    ░      ░ ░      ░  ░    ░ ░                 ░           ░  ░              ░  ░   ░     
-                                                                                             
-""")
+        self.title = ("""  
+  ▀████    ▐████▀  ▄██████▄   ▄█        ▄██████▄  
+    ███▌   ████▀  ███    ███ ███       ███    ███           _.._
+     ███  ▐███    ███    ███ ███       ███    ███         .' .-'`
+     ▀███▄███▀    ███    ███ ███       ███    ███        /  /
+     ████▀██▄     ███    ███ ███       ███    ███        |  |
+    ▐███  ▀███    ███    ███ ███       ███    ███        \  '.___.;
+   ▄███     ███▄  ███    ███ ███▌    ▄ ███    ███         '._  _.'
+  ████       ███▄  ▀██████▀  █████▄▄██  ▀██████▀             ``
+                             ▀                    
+		> the best one out there (yet again) <""") if self.config["title"]["minimal"] else ("""  
+  ▀████    ▐████▀  ▄██████▄   ▄█        ▄██████▄          ▄████████ ███▄▄▄▄    ▄█     ▄███████▄    ▄████████    ▄████████ 
+    ███▌   ████▀  ███    ███ ███       ███    ███        ███    ███ ███▀▀▀██▄ ███    ███    ███   ███    ███   ███    ███           _.._
+     ███  ▐███    ███    ███ ███       ███    ███        ███    █▀  ███   ███ ███▌   ███    ███   ███    █▀    ███    ███         .' .-'`
+     ▀███▄███▀    ███    ███ ███       ███    ███        ███        ███   ███ ███▌   ███    ███  ▄███▄▄▄      ▄███▄▄▄▄██▀        /  /
+     ████▀██▄     ███    ███ ███       ███    ███      ▀███████████ ███   ███ ███▌ ▀█████████▀  ▀▀███▀▀▀     ▀▀███▀▀▀▀▀          |  |
+    ▐███  ▀███    ███    ███ ███       ███    ███               ███ ███   ███ ███    ███          ███    █▄  ▀███████████        \  '.___.;
+   ▄███     ███▄  ███    ███ ███▌    ▄ ███    ███         ▄█    ███ ███   ███ ███    ███          ███    ███   ███    ███         '._  _.'
+  ████       ███▄  ▀██████▀  █████▄▄██  ▀██████▀        ▄████████▀   ▀█   █▀  █▀    ▄████▀        ██████████   ███    ███            ``
+                             ▀                                                                                 ███    ███ 
+						    > the best one out there (yet again) <""")
         self.checks = 0
         self.buys = 0
         self.request_method = 2
@@ -109,10 +122,11 @@ class Sniper:
         
         if response.status_code != 200:
             pass
-        print(response.text)
         if not response.text == self.version:
-                print("NEW UPDATED VERSION PLEASE UPDATE YOUR FILE")
-                print("will continue in 5 seconds")
+                print(f"""{Color(0xf2f24e)}! NEW UPDATED VERSION ({response.text}) !
+{Color(0x7e33ff)}Please update your version at {Color(0xf2f24e)}https://github.com/efenatuyo/ugc-sniper
+{Color(0x7e33ff)}Continuing in 5 seconds.{Color(0xffffff)}
+""")
                 import time
                 time.sleep(5)
         
@@ -152,16 +166,21 @@ class Sniper:
            return data.get('id')
     
     def _print_stats(self) -> None:
-        print(f"Version: {self.version}")
-        print(Fore.GREEN + Style.BRIGHT + self.title)
-        print(Fore.RESET + Style.RESET_ALL)
-        print(Style.BRIGHT + f"                           [ Loaded items: {Fore.GREEN}{Style.BRIGHT}{len(self.items)}{Fore.WHITE}{Style.BRIGHT} ]")
-        print(Style.BRIGHT + f"                           [ Total buys: {Fore.GREEN}{Style.BRIGHT}{self.buys}{Fore.WHITE}{Style.BRIGHT} ]")
-        print(Style.BRIGHT + f"                           [ Total errors: {Fore.RED}{Style.BRIGHT}{self.errors}{Fore.WHITE}{Style.BRIGHT} ]")
-        print(Style.BRIGHT + f"                           [ Last Speed: {Fore.YELLOW}{Style.BRIGHT}{self.last_time}{Fore.WHITE}{Style.BRIGHT} ]")
-        print(Style.BRIGHT + f"                           [ Total price checks: {Fore.YELLOW}{Style.BRIGHT}{self.checks}{Fore.WHITE}{Style.BRIGHT} ]")
-        print()
-        print(Style.BRIGHT + f"                           [ Current Task: {Fore.GREEN}{Style.BRIGHT}{self.task}{Fore.WHITE}{Style.BRIGHT} ]")
+        gradient_print(self.title, start_color=Color(0x5916cc), end_color=Color(0xf2f24e))
+        print(f""" 
+ {Color(0xffffff)}-----------
+  {Color(0x7e33ff)}Script  {Color(0xffffff)}:  {Color(0xf2f24e)}xolo#4249
+  {Color(0x7e33ff)}Theme   {Color(0xffffff)}:  {Color(0xf2f24e)}SleepyLuc#9967
+ {Color(0xffffff)}-----------
+  {Color(0x7e33ff)}Version {Color(0xffffff)}:  {Color(0xf2f24e)}{self.version}
+  {Color(0x7e33ff)}Task    {Color(0xffffff)}:  {Color(0xf2f24e)}{self.task}
+ {Color(0xffffff)}-----------
+  {Color(0x7e33ff)}Snipes  {Color(0xffffff)}:  {Color(0xf2f24e)}{self.buys}
+  {Color(0x7e33ff)}Errors  {Color(0xffffff)}:  {Color(0xf2f24e)}{self.errors}
+  {Color(0x7e33ff)}Speed   {Color(0xffffff)}:  {Color(0xf2f24e)}{self.last_time}
+  {Color(0x7e33ff)}Checks  {Color(0xffffff)}:  {Color(0xf2f24e)}{self.checks}
+ {Color(0xffffff)}-----------
+""")
             
     async def _get_xcsrf_token(self, cookie) -> dict:
         async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as client:
@@ -182,7 +201,7 @@ class Sniper:
                 self.accounts[i]["created"] = response["created"]
                 return True
             except Exception as e:
-                print(f"{e.__class__.__name__}: {e}")
+                print(f"{Color(0xff0000)}{e.__class__.__name__}: {e}{Color(0xffffff)}")
                 return False
         return True
       return False
@@ -218,7 +237,7 @@ class Sniper:
          async with aiohttp.ClientSession() as client:   
             while True:
                 if total_errors >= 10:
-                    print("Too many errors encountered. Aborting purchase.")
+                    print(f"{Color(0xff8080)}Too many errors encountered. Aborting purchase.{Color(0xffffff)}")
                     return
                  
                 data["idempotencyKey"] = str(uuid.uuid4())
@@ -232,12 +251,12 @@ class Sniper:
                 
                 except aiohttp.ClientConnectorError as e:
                     self.errors += 1
-                    print(f"Connection error encountered: {e}. Retrying purchase...")
+                    print(f"{Color(0xff0000)}Connection error encountered: {e}. Retrying purchase...{Color(0xffffff)}")
                     total_errors += 1
                     continue
                     
                 if response.status == 429:
-                       print("Ratelimit encountered. Retrying purchase in 0.5 seconds...")
+                       print(f"{Color(0xffff00)}Ratelimit encountered. Retrying purchase in 0.5 seconds...{Color(0xffffff)}")
                        await asyncio.sleep(0.5)
                        continue
             
@@ -245,27 +264,27 @@ class Sniper:
                       json_response = await response.json()
                 except aiohttp.ContentTypeError as e:
                       self.errors += 1
-                      print(f"JSON decode error encountered: {e}. Retrying purchase...")
+                      print(f"{Color(0xff0000)}JSON decode error encountered: {e}. Retrying purchase...{Color(0xffffff)}")
                       total_errors += 1
                       continue
                   
                 if not json_response["purchased"]:
                        self.errors += 1
-                       print(f"Purchase failed. Response: {json_response}. Retrying purchase...")
+                       print(f"{Color(0xff0000)}Purchase failed. Response: {json_response}. Retrying purchase...{Color(0xffffff)}")
                        total_errors += 1
                 else:
-                       print(f"Purchase successful. Response: {json_response}.")
+                       print(f"{Color(0x00ff00)}Purchase successful! Response: {json_response}{Color(0xffffff)}")
                        self.buys += 1
                        if self.webhookEnabled:
                             embed_data = {
-                                "title": "New Item Purchased with Xolo Sniper",
+                                "title": "New Item purchased with Xolo Sniper!",
                                 "url": f"https://www.roblox.com/catalog/{item_id}/Xolo-Sniper",
                                 "color": 65280,
                                 "author": {
                                     "name": "Purchased limited successfully!"
                                 },
                                 "footer": {
-                                "text": "Xolo's Sniper"
+                                "text": "Xolo Sniper"
                                 }
                             }
 
@@ -285,7 +304,7 @@ class Sniper:
                   
                   for item in items:
                       if item["id"] not in self.scraped_ids:
-                          print(f"Found new free item: {item['name']} (ID: {item['id']})")
+                          print(f"{Color(0xff0000)}Found new free item: {item['name']} (ID: {item['id']})!{Color(0xffffff)}")
                           self.latest_free_item = item
                           self.scraped_ids.append(item)
                           
@@ -306,16 +325,16 @@ class Sniper:
                           await asyncio.gather(*coroutines)
                           
         except aiohttp.client_exceptions.ClientConnectorError as e:
-            print(f"Error connecting to host: {e}")
+            print(f"{Color(0xff0000)}Error connecting to host: {e}{Color(0xffffff)}")
             self.errors += 1
         except aiohttp.client_exceptions.ServerDisconnectedError as e:
-            print(f"Server disconnected error: {e}")
+            print(f"{Color(0xff0000)}Server disconnected error: {e}{Color(0xffffff)}")
             self.errors += 1
         except aiohttp.client_exceptions.ClientOSError as e:
-            print(f"Client OS error: {e}")
+            print(f"{Color(0xff0000)}Client OS error: {e}{Color(0xffffff)}")
             self.errors += 1
         except aiohttp.client_exceptions.ClientResponseError as e:
-            print(f"Response Error: {e}")
+            print(f"{Color(0xff0000)}Response Error: {e}{Color(0xffffff)}")
             self.errors += 1
             await asyncio.sleep(5)
         finally:
@@ -366,10 +385,10 @@ class Sniper:
                     t1 = asyncio.get_event_loop().time()
                     self.last_time = round(t1 - t0, 3)     
         except aiohttp.ClientConnectorError as e:
-            print(f'Connection error: {e}')
+            print(f"{Color(0xff0000)}Connection error: {e}{Color(0xffffff)}")
             self.errors += 1
         except aiohttp.ContentTypeError as e:
-            print(f'Content type error: {e}')
+            print(f"{Color(0xff0000)}Content type error: {e}{Color(0xffffff)}")
             self.errors += 1
         except aiohttp.ClientResponseError as e:
             pass
