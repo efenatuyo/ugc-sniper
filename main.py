@@ -45,6 +45,8 @@ class Sniper:
              config = json.load(file)
         self.webhookEnabled = False if not config["webhook"] or config["webhook"]["enabled"] == False else True
         self.webhookUrl = config["webhook"]["url"] if self.webhookEnabled else None
+        self.timedEnabled = False if not config["timed"] or config["timed"]["enabled"] == False else True
+        self.timedTime = datetime.datetime.strptime(config["timed"]["time"], '%m/%d/%Y %H:%M:%S')
         self.accounts = None
         self.items = self._load_items()
         self.title = ("""
@@ -368,7 +370,11 @@ class Sniper:
             await asyncio.sleep(0.5)
              
     
-    async def start(self):   
+    async def start(self):
+            if self.timedEnabled:
+                startTime = datetime.datetime.now()
+                print(f"Starting at {self.timedTime}")
+                await asyncio.sleep((self.timedTime-startTime).total_seconds())
             self.ratelimit = self.bucket(max_tokens=60, refill_interval=60)     
             coroutines = []
             coroutines.append(self.given_id_sniper())
