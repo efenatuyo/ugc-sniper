@@ -1,4 +1,5 @@
- # made by xolo#4942
+# theme made by doot#0002
+# program made by xolo#4942
 # version 8.0.0
 
 try:
@@ -10,7 +11,8 @@ try:
   import requests
   from colorama import Fore, Back, Style
   import aiohttp
-  import json   
+  import json
+  from rgbprint import gradient_print, Color, rgbprint
 
 except ModuleNotFoundError:
     print("Modules not installed properly installing now")
@@ -18,6 +20,7 @@ except ModuleNotFoundError:
     os.system("pip install colorama")
     os.system("pip install aiohttp")
     os.system("pip install rapidjson")
+    os.system("pip install rgbprint")
 
 class Sniper:
     class bucket:
@@ -47,18 +50,17 @@ class Sniper:
         self.webhookUrl = config["webhook"]["url"] if self.webhookEnabled else None
         self.accounts = None
         self.items = self._load_items()
-        self.title = ("""
-▒██   ██▒ ▒█████   ██▓     ▒█████             ██████  ███▄    █  ██▓ ██▓███  ▓█████  ██▀███  
-▒▒ █ █ ▒░▒██▒  ██▒▓██▒    ▒██▒  ██▒         ▒██    ▒  ██ ▀█   █ ▓██▒▓██░  ██▒▓█   ▀ ▓██ ▒ ██▒
-░░  █   ░▒██░  ██▒▒██░    ▒██░  ██▒         ░ ▓██▄   ▓██  ▀█ ██▒▒██▒▓██░ ██▓▒▒███   ▓██ ░▄█ ▒
- ░ █ █ ▒ ▒██   ██░▒██░    ▒██   ██░           ▒   ██▒▓██▒  ▐▌██▒░██░▒██▄█▓▒ ▒▒▓█  ▄ ▒██▀▀█▄  
-▒██▒ ▒██▒░ ████▓▒░░██████▒░ ████▓▒░         ▒██████▒▒▒██░   ▓██░░██░▒██▒ ░  ░░▒████▒░██▓ ▒██▒
-▒▒ ░ ░▓ ░░ ▒░▒░▒░ ░ ▒░▓  ░░ ▒░▒░▒░          ▒ ▒▓▒ ▒ ░░ ▒░   ▒ ▒ ░▓  ▒▓▒░ ░  ░░░ ▒░ ░░ ▒▓ ░▒▓░
-░░   ░▒ ░  ░ ▒ ▒░ ░ ░ ▒  ░  ░ ▒ ▒░          ░ ░▒  ░ ░░ ░░   ░ ▒░ ▒ ░░▒ ░      ░ ░  ░  ░▒ ░ ▒░
- ░    ░  ░ ░ ░ ▒    ░ ░   ░ ░ ░ ▒           ░  ░  ░     ░   ░ ░  ▒ ░░░          ░     ░░   ░ 
- ░    ░      ░ ░      ░  ░    ░ ░                 ░           ░  ░              ░  ░   ░     
-                                                                                             
+        self.title = ("""\n
+                        ██████╗ █████╗ ███████╗███████╗███████╗██╗███╗   ██╗███████╗
+                       ██╔════╝██╔══██╗██╔════╝██╔════╝██╔════╝██║████╗  ██║██╔════╝
+                       ██║     ███████║█████╗  █████╗  █████╗  ██║██╔██╗ ██║█████╗  
+                       ██║     ██╔══██║██╔══╝  ██╔══╝  ██╔══╝  ██║██║╚██╗██║██╔══╝  
+                       ╚██████╗██║  ██║██║     ██║     ███████╗██║██║ ╚████║███████╗
+                        ╚═════╝╚═╝  ╚═╝╚═╝     ╚═╝     ╚══════╝╚═╝╚═╝  ╚═══╝╚══════╝
+                                      > a roblox limited ugc sniper <
+                                                             
 """)
+
         self.checks = 0
         self.buys = 0
         self.request_method = 2
@@ -102,7 +104,7 @@ class Sniper:
     #  await asyncio.gather(*coroutines)
     
     def check_version(self):
-        self.task = "Github Checker"
+        self.task = "Checking Github..."
         self._print_stats()
         response = requests.get("https://pastebin.com/raw/MXFsQ0TQ")
         
@@ -110,17 +112,17 @@ class Sniper:
             pass
         print(response.text)
         if not response.text == self.version:
-                print("NEW UPDATED VERSION PLEASE UPDATE YOUR FILE")
-                print("will continue in 5 seconds")
+                print("There is a new version available! Check the sniper's github.")
+                print("Continuing in 2 seconds...")
                 import time
-                time.sleep(5)
+                time.sleep(2)
         
     class DotDict(dict):
         def __getattr__(self, attr):
             return self[attr]
     
     def _setup_accounts(self) -> None:
-        self.task = "Account Loader"
+        self.task = "Loading Accounts..."
         self._print_stats
         cookies = self._load_cookies()
         for i in cookies:
@@ -153,15 +155,19 @@ class Sniper:
            return data.get('id')
     
     def _print_stats(self) -> None:
-        print(f"Version: {self.version}")
-        print(Fore.GREEN + Style.BRIGHT + self.title)
-        print(Fore.RESET + Style.RESET_ALL)
-        print(Style.BRIGHT + f"                           [ Total buys: {Fore.GREEN}{Style.BRIGHT}{self.buys}{Fore.WHITE}{Style.BRIGHT} ]")
-        print(Style.BRIGHT + f"                           [ Total errors: {Fore.RED}{Style.BRIGHT}{self.errors}{Fore.WHITE}{Style.BRIGHT} ]")
-        print(Style.BRIGHT + f"                           [ Last Speed: {Fore.YELLOW}{Style.BRIGHT}{self.last_time}{Fore.WHITE}{Style.BRIGHT} ]")
-        print(Style.BRIGHT + f"                           [ Total price checks: {Fore.YELLOW}{Style.BRIGHT}{self.checks}{Fore.WHITE}{Style.BRIGHT} ]")
-        print()
-        print(Style.BRIGHT + f"                           [ Current Task: {Fore.GREEN}{Style.BRIGHT}{self.task}{Fore.WHITE}{Style.BRIGHT} ]")
+        gradient_print(self.title, start_color=Color(0x99754f), end_color=Color(0xc8b6a3))
+        rgbprint("  -------",color=("c8b6a3"))
+        print(f"{Color(0x99754f)}  Program :  {Color(0xc8b6a3)}xolo#4924")
+        print(f"{Color(0x99754f)}  Theme   :  {Color(0xc8b6a3)}doot#0002")
+        rgbprint("  -------",color=("c8b6a3"))
+        print(f"{Color(0x99754f)}  Version :  {Color(0xc8b6a3)}{self.version}")
+        print(f"{Color(0x99754f)}  Task    :  {Color(0xc8b6a3)}{self.task}")
+        rgbprint("  -------",color=("c8b6a3"))
+        print(f"{Color(0x99754f)}  Snipes  :  {Color(0xc8b6a3)}{self.buys}")
+        print(f"{Color(0x99754f)}  Speed   :  {Color(0xc8b6a3)}{self.last_time}")
+        print(f"{Color(0x99754f)}  Checks  :  {Color(0xc8b6a3)}{self.checks}")
+        print(f"{Color(0x99754f)}  Errors  :  {Color(0xc8b6a3)}{self.errors}")
+        rgbprint("  -------",color=("c8b6a3"))
             
     async def _get_xcsrf_token(self, cookie) -> dict:
         async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as client:
@@ -206,7 +212,7 @@ class Sniper:
          data = {
                "collectibleItemId": item_id,
                "expectedCurrency": 1,
-               "expectedPrice": price,
+               "expectedPrice": 0,
                "expectedPurchaserId": user_id,
                "expectedPurchaserType": "User",
                "expectedSellerId": creator_id,
@@ -217,7 +223,7 @@ class Sniper:
          total_errors = 0
          async with aiohttp.ClientSession() as client:   
             while True:
-                if total_errors >= 10:
+                if total_errors >= 35:
                     print("Too many errors encountered. Aborting purchase.")
                     return
                  
@@ -257,14 +263,14 @@ class Sniper:
                        self.buys += 1
                        if self.webhookEnabled:
                             embed_data = {
-                                "title": "New Item Purchased with Xolo Sniper",
-                                "url": f"https://www.roblox.com/catalog/{item_id}/Xolo-Sniper",
+                                "title": "New Item Purchased with Caffeine Sniper",
+                                "url": f"https://www.roblox.com/catalog/{item_id}",
                                 "color": 65280,
                                 "author": {
                                     "name": "Purchased limited successfully!"
                                 },
                                 "footer": {
-                                "text": "Xolo's Sniper"
+                                "text": "Caffeine Sniper"
                                 }
                             }
 
@@ -325,7 +331,7 @@ class Sniper:
      async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
       while True:
         try:
-                self.task = "Item Scraper & Searcher"
+                self.task = "Buying Limiteds..."
                 t0 = asyncio.get_event_loop().time()
                 
                 for currentItem in self.items:
