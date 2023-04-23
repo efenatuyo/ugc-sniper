@@ -175,6 +175,7 @@ class Sniper:
   {Color(0x7e33ff)}Version {Color(0xffffff)}:  {Color(0xf2f24e)}{self.version}
   {Color(0x7e33ff)}Task    {Color(0xffffff)}:  {Color(0xf2f24e)}{self.task}
  {Color(0xffffff)}-----------
+  {Color(0x7e33ff)}Items  {Color(0xffffff)}:  {Color(0xf2f24e)}{len(self.items)}
   {Color(0x7e33ff)}Snipes  {Color(0xffffff)}:  {Color(0xf2f24e)}{self.buys}
   {Color(0x7e33ff)}Errors  {Color(0xffffff)}:  {Color(0xf2f24e)}{self.errors}
   {Color(0x7e33ff)}Speed   {Color(0xffffff)}:  {Color(0xf2f24e)}{self.last_time}
