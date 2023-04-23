@@ -372,8 +372,11 @@ class Sniper:
     
     async def start(self):
             if self.timedEnabled:
+                self.task = "Waiting"
+                os.system(self.clear)
+                self._print_stats()
                 startTime = datetime.datetime.now()
-                print(f"Starting at {self.timedTime}")
+                print(f"                           [ Starting at {self.timedTime} ]")
                 await asyncio.sleep((self.timedTime-startTime).total_seconds())
             self.ratelimit = self.bucket(max_tokens=60, refill_interval=60)     
             coroutines = []
