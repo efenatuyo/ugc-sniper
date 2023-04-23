@@ -267,14 +267,14 @@ class Sniper:
                        self.buys += 1
                        if self.webhookEnabled:
                             embed_data = {
-                                "title": "New Item Purchased with Xolo Sniper",
+                                "title": "New Item purchased with Moon Sniper!",
                                 "url": f"https://www.roblox.com/catalog/{item_id}/Xolo-Sniper",
                                 "color": 65280,
                                 "author": {
                                     "name": "Purchased limited successfully!"
                                 },
                                 "footer": {
-                                "text": "Xolo's Sniper"
+                                "text": "Moon's Sniper"
                                 }
                             }
 
