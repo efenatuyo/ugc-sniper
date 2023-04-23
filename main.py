@@ -1,5 +1,5 @@
  # made by xolo#4942
-# version 8.0.0
+# version 8.1.0
 
 try:
   import datetime
@@ -42,9 +42,10 @@ class Sniper:
                 
     def __init__(self) -> None:
         with open("config.json") as file:
-             config = json.load(file)
-        self.webhookEnabled = False if not config["webhook"] or config["webhook"]["enabled"] == False else True
-        self.webhookUrl = config["webhook"]["url"] if self.webhookEnabled else None
+             self.config = json.load(file)
+        
+        self.webhookEnabled = False if not self.config["webhook"] or self.config["webhook"]["enabled"] == False else True
+        self.webhookUrl = self.config["webhook"]["url"] if self.webhookEnabled else None
         self.accounts = None
         self.items = self._load_items()
         self.title = ("""
@@ -65,12 +66,12 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "8.0.0"
+        self.version = "8.1.0"
         self.task = None
-        self.scraped_ids = []
         self.latest_free_item = {}
         self._setup_accounts()
         self.check_version()
+        self.waitTime = 1 * len(self.items)
         # / couldn't fix errors aka aiohttp does not support proxies
         # self.proxylist = open("proxylist.txt").read().splitlines()
         # self.workingProxies = []
@@ -132,17 +133,15 @@ class Sniper:
         self.accounts = cookies
         
     def _load_cookies(self) -> dict:
-        with open("cookie.txt", "r") as file:
-            lines = file.read().split('\n')
+            lines = self.config['accounts']
             my_dict = {}
             for i, line in enumerate(lines):
                 my_dict[str(i+1)] = {}
-                my_dict[str(i+1)] = {"cookie": line}
+                my_dict[str(i+1)] = {"cookie": line['cookie']}
             return my_dict
         
     def _load_items(self) -> list:
-        with open('limiteds.txt', 'r') as f:
-            return [line.rstrip() for line in f.readlines()]
+            return [item["id"] for item in self.config["items"]]
                  
     async def _get_user_id(self, cookie) -> str:
        async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as client:
@@ -156,6 +155,7 @@ class Sniper:
         print(f"Version: {self.version}")
         print(Fore.GREEN + Style.BRIGHT + self.title)
         print(Fore.RESET + Style.RESET_ALL)
+        print(Style.BRIGHT + f"                           [ Loaded items: {Fore.GREEN}{Style.BRIGHT}{len(self.items)}{Fore.WHITE}{Style.BRIGHT} ]")
         print(Style.BRIGHT + f"                           [ Total buys: {Fore.GREEN}{Style.BRIGHT}{self.buys}{Fore.WHITE}{Style.BRIGHT} ]")
         print(Style.BRIGHT + f"                           [ Total errors: {Fore.RED}{Style.BRIGHT}{self.errors}{Fore.WHITE}{Style.BRIGHT} ]")
         print(Style.BRIGHT + f"                           [ Last Speed: {Fore.YELLOW}{Style.BRIGHT}{self.last_time}{Fore.WHITE}{Style.BRIGHT} ]")
@@ -224,6 +224,7 @@ class Sniper:
                 data["idempotencyKey"] = str(uuid.uuid4())
                 
                 try:
+                    await self.ratelimit.take(1)
                     response = await client.post(f"https://apis.roblox.com/marketplace-sales/v1/item/{item_id}/purchase-item",
                            json=data,
                            headers={"x-csrf-token": x_token},
@@ -275,6 +276,7 @@ class Sniper:
      async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
       while True:
         try:
+
             async with session.get("https://catalog.roblox.com/v2/search/items/details?Keyword=orange%20teal%20cyan%20red%20green%20topaz%20yellow%20wings%20maroon%20space%20dominus%20lime%20mask%20mossy%20wooden%20crimson%20salmon%20brown%20pastel%20%20ruby%20diamond%20creatorname%20follow%20catalog%20link%20rare%20emerald%20chain%20blue%20deep%20expensive%20furry%20hood%20currency%20coin%20royal%20navy%20ocean%20air%20white%20cyber%20ugc%20verified%20black%20purple%20yellow%20violet%20description%20dark%20bright%20rainbow%20pink%20cyber%20roblox%20multicolor%20light%20gradient%20grey%20gold%20cool%20indigo%20test%20hat%20limited2%20headphones%20emo%20edgy%20back%20front%20lava%20horns%20water%20waist%20face%20neck%20shoulders%20collectable&Category=11&Subcategory=19&CurrencyType=3&MaxPrice=0&salesTypeFilter=2&SortType=3&limit=120", ssl = False) as response:
                   await self.ratelimit.take(1)
                   response.raise_for_status()
@@ -320,28 +322,36 @@ class Sniper:
             self.checks += 1
             await asyncio.sleep(5)
             
-                    
-    async def given_id_sniper(self) -> None:
-     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
+    async def search(self, session, id):
+      for item in self.config["items"]:
+          if item["id"] == id:
+              date  = item['start']
       while True:
         try:
-                self.task = "Item Scraper & Searcher"
-                t0 = asyncio.get_event_loop().time()
+                    try:
+                      start_time = datetime.datetime.strptime(str(date), "%Y-%m-%d %H:%M:%S")
+                      if datetime.datetime.now() >= start_time:
+                         pass
+                      else:
+                         continue
+                    except ValueError:
+                         pass
+                    self.task = "Item Scraper & Searcher"
+                    t0 = asyncio.get_event_loop().time()
                 
-                for currentItem in self.items:
-                    if not currentItem.isdigit():
-                        raise Exception(f"Invalid item id given ID: {currentItem}")
+                    if not id.isdigit():
+                        raise Exception(f"Invalid item id given ID: {id}")
                     
                     await self.ratelimit.take(1)
                     currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
                     async with session.post("https://catalog.roblox.com/v1/catalog/items/details",
-                                           json={"items": [{"itemType": "Asset", "id": int(currentItem)}]},
+                                           json={"items": [{"itemType": "Asset", "id": id}]},
                                            headers={"x-csrf-token": currentAccount['xcsrf_token'], 'Accept': "application/json"},
                                            cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False) as response:
                         response.raise_for_status()
                         response_text = await response.text()
                         json_response = json.loads(response_text)['data'][0]
-                        if json_response.get("priceStatus") != "Off Sale" and 0 if json_response.get('unitsAvailableForConsumption') is None else json_response.get('unitsAvailableForConsumption') > 0:
+                        if json_response.get("priceStatus") != "Off Sale" and json_response.get('unitsAvailableForConsumption', 0) > 0:
                             await self.ratelimit.take(1)
                             productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                                                      json={"itemIds": [json_response["collectibleItemId"]]},
@@ -354,7 +364,7 @@ class Sniper:
                             self.task = "Item Buyer"
                             await asyncio.gather(*coroutines)
                     t1 = asyncio.get_event_loop().time()
-                    self.last_time = round(t1 - t0, 3)
+                    self.last_time = round(t1 - t0, 3)     
         except aiohttp.ClientConnectorError as e:
             print(f'Connection error: {e}')
             self.errors += 1
@@ -365,7 +375,14 @@ class Sniper:
             pass
         finally:
             self.checks += 1
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(self.waitTime)
+                               
+    async def given_id_sniper(self) -> None:
+        
+     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
+      coroutines = [self.search(session=session, id=current) for current in self.items]
+      await asyncio.gather(*coroutines)
+          
              
     
     async def start(self):   
@@ -382,7 +399,7 @@ class Sniper:
                 raise Exception("x_csrf_token couldn't be generated")
             os.system(self.clear)
             self._print_stats()
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(self.waitTime)
         
 sniper = Sniper()
 sniper
