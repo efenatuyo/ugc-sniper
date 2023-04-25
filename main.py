@@ -8,7 +8,7 @@ try:
   import asyncio
   import random
   import requests
-  from rgbprint import gradient_print, Color
+  from rgbprint import Color
   import aiohttp
   import json   
 
@@ -52,27 +52,27 @@ class Sniper:
         self.webhookUrl = self.config["webhook"]["url"] if self.webhookEnabled else None
         self.accounts = None
         self.items = self._load_items()
-        self.title = ("""  
-  ▀████    ▐████▀  ▄██████▄   ▄█        ▄██████▄  
-    ███▌   ████▀  ███    ███ ███       ███    ███           _.._
-     ███  ▐███    ███    ███ ███       ███    ███         .' .-'`
-     ▀███▄███▀    ███    ███ ███       ███    ███        /  /
-     ████▀██▄     ███    ███ ███       ███    ███        |  |
-    ▐███  ▀███    ███    ███ ███       ███    ███        \  '.___.;
-   ▄███     ███▄  ███    ███ ███▌    ▄ ███    ███         '._  _.'
-  ████       ███▄  ▀██████▀  █████▄▄██  ▀██████▀             ``
-                             ▀                    
-		> the best one out there (yet again) <""") if self.config["title"]["compact"] else ("""  
-  ▀████    ▐████▀  ▄██████▄   ▄█        ▄██████▄          ▄████████ ███▄▄▄▄    ▄█     ▄███████▄    ▄████████    ▄████████ 
-    ███▌   ████▀  ███    ███ ███       ███    ███        ███    ███ ███▀▀▀██▄ ███    ███    ███   ███    ███   ███    ███           _.._
-     ███  ▐███    ███    ███ ███       ███    ███        ███    █▀  ███   ███ ███▌   ███    ███   ███    █▀    ███    ███         .' .-'`
-     ▀███▄███▀    ███    ███ ███       ███    ███        ███        ███   ███ ███▌   ███    ███  ▄███▄▄▄      ▄███▄▄▄▄██▀        /  /
-     ████▀██▄     ███    ███ ███       ███    ███      ▀███████████ ███   ███ ███▌ ▀█████████▀  ▀▀███▀▀▀     ▀▀███▀▀▀▀▀          |  |
-    ▐███  ▀███    ███    ███ ███       ███    ███               ███ ███   ███ ███    ███          ███    █▄  ▀███████████        \  '.___.;
-   ▄███     ███▄  ███    ███ ███▌    ▄ ███    ███         ▄█    ███ ███   ███ ███    ███          ███    ███   ███    ███         '._  _.'
-  ████       ███▄  ▀██████▀  █████▄▄██  ▀██████▀        ▄████████▀   ▀█   █▀  █▀    ▄████▀        ██████████   ███    ███            ``
-                             ▀                                                                                 ███    ███ 
-						    > the best one out there (yet again) <""")
+        self.title = (f"""  
+{Color(0x6e34bb)}  ▀████    ▐████▀  ▄██████▄   ▄█        ▄██████▄  
+{Color(0x733cb6)}    ███▌   ████▀  ███    ███ ███       ███    ███           _.._
+{Color(0x7d4aae)}     ███  ▐███    ███    ███ ███       ███    ███         .' .-'`
+{Color(0x8c5fa2)}     ▀███▄███▀    ███    ███ ███       ███    ███        /  /
+{Color(0x9d7794)}     ████▀██▄     ███    ███ ███       ███    ███        |  |
+{Color(0xae9186)}    ▐███  ▀███    ███    ███ ███       ███    ███        \  '.___.;
+{Color(0xbfa978)}   ▄███     ███▄  ███    ███ ███▌    ▄ ███    ███         '._  _.'
+{Color(0xcebe6c)}  ████       ███▄  ▀██████▀  █████▄▄██  ▀██████▀             ``
+{Color(0xd8cc64)}                             ▀                    
+{Color(0xddd45f)}		> the best one out there (yet again) <{Color(0xffffff)}""") if self.config["title"]["compact"] else (f"""  
+{Color(0x6e34bb)}  ▀████    ▐████▀  ▄██████▄   ▄█        ▄██████▄          ▄████████ ███▄▄▄▄    ▄█     ▄███████▄    ▄████████    ▄████████ 
+{Color(0x733cb6)}    ███▌   ████▀  ███    ███ ███       ███    ███        ███    ███ ███▀▀▀██▄ ███    ███    ███   ███    ███   ███    ███           _.._
+{Color(0x7d4aae)}     ███  ▐███    ███    ███ ███       ███    ███        ███    █▀  ███   ███ ███▌   ███    ███   ███    █▀    ███    ███         .' .-'`
+{Color(0x8c5fa2)}     ▀███▄███▀    ███    ███ ███       ███    ███        ███        ███   ███ ███▌   ███    ███  ▄███▄▄▄      ▄███▄▄▄▄██▀        /  /
+{Color(0x9d7794)}     ████▀██▄     ███    ███ ███       ███    ███      ▀███████████ ███   ███ ███▌ ▀█████████▀  ▀▀███▀▀▀     ▀▀███▀▀▀▀▀          |  |
+{Color(0xae9186)}    ▐███  ▀███    ███    ███ ███       ███    ███               ███ ███   ███ ███    ███          ███    █▄  ▀███████████        \  '.___.;
+{Color(0xbfa978)}   ▄███     ███▄  ███    ███ ███▌    ▄ ███    ███         ▄█    ███ ███   ███ ███    ███          ███    ███   ███    ███         '._  _.'
+{Color(0xcebe6c)}  ████       ███▄  ▀██████▀  █████▄▄██  ▀██████▀        ▄████████▀   ▀█   █▀  █▀    ▄████▀        ██████████   ███    ███            ``
+{Color(0xd8cc64)}                             ▀                                                                                 ███    ███ 
+{Color(0xddd45f)}						    > the best one out there (yet again) <{Color(0xffffff)}""")
         self.checks = 0
         self.buys = 0
         self.request_method = 2
@@ -166,8 +166,7 @@ class Sniper:
            return data.get('id')
     
     def _print_stats(self) -> None:
-        gradient_print(self.title, start_color=Color(0x5916cc), end_color=Color(0xf2f24e))
-        print(f""" 
+        print(f"""{self.title}
  {Color(0xffffff)}-----------
   {Color(0x7e33ff)}Script  {Color(0xffffff)}:  {Color(0xf2f24e)}xolo#4249
   {Color(0x7e33ff)}Theme   {Color(0xffffff)}:  {Color(0xf2f24e)}SleepyLuc#9967
