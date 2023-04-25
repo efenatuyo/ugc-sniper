@@ -1,15 +1,11 @@
 {
     "webhook": {
-        "enabled": true,
-        "url": ""
+        "enabled": false,
+        "url": "https://eee"
     },
     "items": [
         {
-            "id": "12858566277",
-            "start": "2023-04-23 16:30:00"
-        },
-        {
-            "id": "12858566277",
+            "id": "13241559642",
             "start": null
         }
     ],
@@ -17,5 +13,10 @@
         {
             "cookie": ""
         }
-    ]
+    ],
+    "discord": {
+        "enabled": false,
+        "prefix": "$",
+        "token": ""
+    }
 }
