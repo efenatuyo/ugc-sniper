@@ -123,9 +123,9 @@ class Sniper:
         if response.status_code != 200:
             pass
         if not response.text == self.version:
-                print(f"""{Color(0xf2f24e)}! NEW UPDATED VERSION ({response.text}) !
-{Color(0x7e33ff)}Please update your version at {Color(0xf2f24e)}https://github.com/efenatuyo/ugc-sniper
-{Color(0x7e33ff)}Continuing in 5 seconds.{Color(0xffffff)}
+                print(f"""{Color(0xddd45f)}! NEW UPDATED VERSION ({response.text}) !
+{Color(0x6e34bb)}Please update your version at {Color(0xddd45f)}https://github.com/efenatuyo/ugc-sniper
+{Color(0x6e34bb)}Continuing in 5 seconds.{Color(0xffffff)}
 """)
                 import time
                 time.sleep(5)
@@ -168,17 +168,17 @@ class Sniper:
     def _print_stats(self) -> None:
         print(f"""{self.title}
  {Color(0xffffff)}-----------
-  {Color(0x7e33ff)}Script  {Color(0xffffff)}:  {Color(0xf2f24e)}xolo#4249
-  {Color(0x7e33ff)}Theme   {Color(0xffffff)}:  {Color(0xf2f24e)}SleepyLuc#9967
+  {Color(0x6e34bb)}Script  {Color(0xffffff)}:  {Color(0xddd45f)}xolo#4249
+  {Color(0x6e34bb)}Theme   {Color(0xffffff)}:  {Color(0xddd45f)}SleepyLuc#9967
  {Color(0xffffff)}-----------
-  {Color(0x7e33ff)}Version {Color(0xffffff)}:  {Color(0xf2f24e)}{self.version}
-  {Color(0x7e33ff)}Task    {Color(0xffffff)}:  {Color(0xf2f24e)}{self.task}
+  {Color(0x6e34bb)}Version {Color(0xffffff)}:  {Color(0xddd45f)}{self.version}
+  {Color(0x6e34bb)}Task    {Color(0xffffff)}:  {Color(0xddd45f)}{self.task}
  {Color(0xffffff)}-----------
-  {Color(0x7e33ff)}Items   {Color(0xffffff)}:  {Color(0xf2f24e)}{len(self.items)}
-  {Color(0x7e33ff)}Snipes  {Color(0xffffff)}:  {Color(0xf2f24e)}{self.buys}
-  {Color(0x7e33ff)}Errors  {Color(0xffffff)}:  {Color(0xf2f24e)}{self.errors}
-  {Color(0x7e33ff)}Speed   {Color(0xffffff)}:  {Color(0xf2f24e)}{self.last_time}
-  {Color(0x7e33ff)}Checks  {Color(0xffffff)}:  {Color(0xf2f24e)}{self.checks}
+  {Color(0x6e34bb)}Items   {Color(0xffffff)}:  {Color(0xddd45f)}{len(self.items)}
+  {Color(0x6e34bb)}Snipes  {Color(0xffffff)}:  {Color(0xddd45f)}{self.buys}
+  {Color(0x6e34bb)}Errors  {Color(0xffffff)}:  {Color(0xddd45f)}{self.errors}
+  {Color(0x6e34bb)}Speed   {Color(0xffffff)}:  {Color(0xddd45f)}{self.last_time}
+  {Color(0x6e34bb)}Checks  {Color(0xffffff)}:  {Color(0xddd45f)}{self.checks}
  {Color(0xffffff)}-----------
 """)
             
