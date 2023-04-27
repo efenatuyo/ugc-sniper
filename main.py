@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 10.0.0
+# version 10.0.1
 
 
 try:
@@ -99,7 +99,7 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "10.0.0"
+        self.version = "10.0.1"
         self.task = None
         self.timeout = self.config['proxy']['timeout_ms'] / 1000 if self.config['proxy']["enabled"] else None
         self.latest_free_item = {}
@@ -226,7 +226,7 @@ class Sniper:
     def check_version(self):
         self.task = "Github Checker"
         self._print_stats()
-        response = requests.get("https://pastebin.com/raw/MXFsQ0TQ")
+        response = requests.get("https://raw.githubusercontent.com/efenatuyo/ugc-sniper/main/version")
         
         if response.status_code != 200:
             pass
