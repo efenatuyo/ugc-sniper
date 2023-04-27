@@ -566,7 +566,7 @@ class Sniper:
             self.errors += 1
         finally:
             self.checks += 1
-            time.sleep(self.wait_time(id, proxy = True if len(self.proxies) > 0 else False))
+            await asyncio.sleep(self.wait_time(id, proxy = True if len(self.proxies) > 0 else False))
             
                                
     async def given_id_sniper(self) -> None:
