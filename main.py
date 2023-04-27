@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 10.0.2
+# version 10.0.3
 
 
 try:
@@ -33,8 +33,11 @@ class Sniper:
             self.refill_interval = refill_interval
             self.last_refill_time = asyncio.get_event_loop().time()
 
-        async def take(self, tokens: int):
+        async def take(self, tokens: int, proxy=False):
             while True:
+                if proxy:
+                    return True
+                
                 elapsed = asyncio.get_event_loop().time() - self.last_refill_time
                 if elapsed > self.refill_interval:
                    self.tokens = self.max_tokens
@@ -99,7 +102,7 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "10.0.2"
+        self.version = "10.0.3"
         self.task = None
         self.timeout = self.config['proxy']['timeout_ms'] / 1000 if self.config['proxy']["enabled"] else None
         self.latest_free_item = {}
@@ -439,9 +442,8 @@ class Sniper:
      async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
       while True:
         try:
-
+            await self.ratelimit.take(1, proxy = True if len(self.proxies) > 0 else False)
             async with session.get("https://catalog.roblox.com/v2/search/items/details?Keyword=orange%20teal%20cyan%20red%20green%20topaz%20yellow%20wings%20maroon%20space%20dominus%20lime%20mask%20mossy%20wooden%20crimson%20salmon%20brown%20pastel%20%20ruby%20diamond%20creatorname%20follow%20catalog%20link%20rare%20emerald%20chain%20blue%20deep%20expensive%20furry%20hood%20currency%20coin%20royal%20navy%20ocean%20air%20white%20cyber%20ugc%20verified%20black%20purple%20yellow%20violet%20description%20dark%20bright%20rainbow%20pink%20cyber%20roblox%20multicolor%20light%20gradient%20grey%20gold%20cool%20indigo%20test%20hat%20limited2%20headphones%20emo%20edgy%20back%20front%20lava%20horns%20water%20waist%20face%20neck%20shoulders%20collectable&Category=11&Subcategory=19&CurrencyType=3&MaxPrice=0&salesTypeFilter=2&SortType=3&limit=120", ssl = False) as response:
-                  await self.ratelimit.take(1)
                   response.raise_for_status()
                    
                   items = (json.loads(await response.text())['data'])
@@ -457,7 +459,7 @@ class Sniper:
                         
                           if self.latest_free_item.get("collectibleItemId") is None:
                               continue
-                          await self.ratelimit.take(1)
+                          await self.ratelimit.take(1, proxy = True if len(self.proxies) > 0 else False)
                           productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                      json={"itemIds": [self.latest_free_item["collectibleItemId"]]},
                                      headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"], 'Accept': "application/json"},
@@ -525,7 +527,7 @@ class Sniper:
                 
                     if not id.isdigit():
                         raise Exception(f"Invalid item id given ID: {id}")
-                    await self.ratelimit.take(1)
+                    await self.ratelimit.take(1, proxy = True if len(self.proxies) > 0 else False)
                     currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
                     async with session.post("https://catalog.roblox.com/v1/catalog/items/details",
                                            json={"items": [{"itemType": "Asset", "id": id}]},
@@ -543,7 +545,7 @@ class Sniper:
                                 json.dump(self.config, f, indent=4)
                              return
                         if json_response.get("priceStatus") != "Off Sale" and json_response.get('unitsAvailableForConsumption', 0) > 0:
-                            await self.ratelimit.take(1)
+                            await self.ratelimit.take(1, proxy = True if len(self.proxies) > 0 else False)
                             productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                                                      json={"itemIds": [json_response["collectibleItemId"]]},
                                                                      headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json"},
