@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 10.0.4
+# version 10.0.5
 
 
 try:
@@ -103,7 +103,7 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "10.0.4"
+        self.version = "10.0.5"
         self.task = None
         self.timeout = self.config['proxy']['timeout_ms'] / 1000 if self.config['proxy']["enabled"] else None
         self.latest_free_item = {}
@@ -370,7 +370,7 @@ class Sniper:
          total_errors = 0
          async with aiohttp.ClientSession() as client:   
             while True:
-                if not float(self.items[raw_id]['max_buys']) > float(self.items[raw_id]['total_buys']):
+                if not float(self.items[raw_id]['max_buys']) > float(self.items[raw_id]['current_buys']):
                     self.waitTime((len(self.items) - 1))
                     del self.items[id]
                     for item in self.config['items']:
