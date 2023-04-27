@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 10.0.1
+# version 10.0.2
 
 
 try:
@@ -99,7 +99,7 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "10.0.1"
+        self.version = "10.0.2"
         self.task = None
         self.timeout = self.config['proxy']['timeout_ms'] / 1000 if self.config['proxy']["enabled"] else None
         self.latest_free_item = {}
@@ -176,7 +176,7 @@ class Sniper:
                 return await ctx.reply("Id is not curently running")
             
             self.tasks[arg].cancel()
-            self.items.remove(arg)
+            del self.items[arg]
             del self.tasks[arg]
             self.waitTime = 1 * len(self.items) if len(self.items) > 0 else 1
             for item in self.config["items"]:
@@ -199,16 +199,25 @@ class Sniper:
             if arg in self.tasks:
                return await ctx.reply("ID is currently running")
             
-            self.items.append(arg)
-            self.waitTime = 1 * len(self.items) if len(self.items) > 0 else 1
             self.config['items'].append({
                 "id": arg,
                 "start": None,
                 "end": None,
+                "max_price": None,
+                "max_buys": None,
                 "importance": 1
             })
             with open('config.json', 'w') as f:
                  json.dump(self.config, f, indent=4)
+            self.items[arg] = {}
+            self.items[arg]['current_buys'] = 0
+            for item in self.config["items"]:
+                if int(item['id']) == int(arg):
+                    item = item
+                    break
+            self.items[arg]['max_buys'] = float('inf') if item['max_buys'] is None else int(item['max_buys'])
+            self.items[arg]['max_price'] = float('inf') if item['max_price'] is None else int(item['max_price'])
+            self.waitTime = 1 * len(self.items) if len(self.items) > 0 else 1
             async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
                 
                 await ctx.reply("ID successfully added")
@@ -227,11 +236,10 @@ class Sniper:
         self.task = "Github Checker"
         self._print_stats()
         response = requests.get("https://raw.githubusercontent.com/efenatuyo/ugc-sniper/main/version")
-        
         if response.status_code != 200:
             pass
-        print(response.text)
-        if not response.text == self.version:
+        print(response.text.rstrip())
+        if not response.text.rstrip() == self.version:
                 print("NEW UPDATED VERSION PLEASE UPDATE YOUR FILE")
                 print("will continue in 5 seconds")
                 import time
