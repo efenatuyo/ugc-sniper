@@ -1,7 +1,4 @@
-update 10.1.5
+update 10.2.5
 
-discord bot now accepts start, end, max_price, max_buys, importance as arguments
-
-themes don't need init anymore (auto imports)
-
-proxy auth support
+added logging
+removed some errors

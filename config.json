@@ -5,7 +5,7 @@
     },
     "items": [
         {
-            "id": "13269365050",
+            "id": "13063319555",
             "start": null,
             "end": null,
             "max_price": null,
@@ -15,7 +15,7 @@
     ],
     "accounts": [
         {
-            "cookie": "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|"
+            "cookie": "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_43A7427C294CDE4CB338EE2E53057AC78BD0D00DA857E76EC33C8AA9FCABCF64A20CD7B3D8FA429464553888A9B55EE77116FCB2BCA76CB1F246A7DA957F9D96FD265553A650DD99FA904FB16E863092B3097E95BB14770A65A8E2B5B551781B89716E3626CA903BBD4288BABEDB8432385F0CFC083E551EBE16FFE0559831C3FE74E712986C0B1399B515BF31492FDA869EEADE05917D3C1950ECA55BA6E75EEC8FC117E976437CF7E9B4C91B961C2B34110211EF31388891049B5305F6AE8B1E73175FA4E37AB00A007D18C6E4E1B1F9DF2AE78D4539F90CC8DC1BC194199A20F1017D525AC7A4662501F11782F2CAF9111FE3E192366CE7FBD5CAC6ACE2D4F24635B00C001FB4136BAD"
         }
     ],
     "proxy": {
@@ -33,7 +33,7 @@
         "wait_time": 1
     },
     "discord": {
-        "enabled": true,
+        "enabled": false,
         "prefix": "$",
         "token": ""
     }

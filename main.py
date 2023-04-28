@@ -1,8 +1,8 @@
 # made by xolo#4942
-# version 10.1.5
-
+# version 10.2.5
 
 try:
+ try:
   import datetime
   import os
   import uuid
@@ -16,7 +16,9 @@ try:
   from discord.ext import commands
   import themes
   import time
-except ModuleNotFoundError:
+  import traceback
+  import logging
+ except ModuleNotFoundError:
     print("Modules not installed properly installing now")
     os.system("pip install requests")
     os.system("pip install colorama")
@@ -24,9 +26,23 @@ except ModuleNotFoundError:
     os.system("pip install aiohttp")
     os.system("pip install rapidjson")
     os.system("pip install discord")
-    
+ 
+ 
+ logging.basicConfig(filename='logs.txt', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+ logger = logging.getLogger(__name__)
+ logger.setLevel(logging.DEBUG)
 
-class Sniper:
+ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+ handler = logging.StreamHandler()
+ handler.setLevel(logging.DEBUG)
+ handler.setFormatter(formatter)
+
+ logger.addHandler(handler)
+
+
+   
+ class Sniper:
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
             self.max_tokens = max_tokens
@@ -89,6 +105,7 @@ class Sniper:
         
                       
     def __init__(self) -> None:
+        logging.info("Started Sniper Class")
         with open("config.json") as file:
              self.config = json.load(file)
         
@@ -103,18 +120,18 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "10.1.5"
+        self.version = "10.2.5"
         self.task = None
         self.timeout = self.config['proxy']['timeout_ms'] / 1000 if self.config['proxy']["enabled"] else None
         self.latest_free_item = {}
         self._setup_accounts()
         self.check_version()
-        self.waitTime = len(self.items)
         self.tasks = {}
         self.themeWaitTime = float(self.config.get('theme')['wait_time'])
         self.proxies = []
         self.proxy_auth = None
         if self.config['proxy']['enabled']:
+            logging.info("Proxy enabled")
             self.proxy_auth = aiohttp.BasicAuth(self.config['proxy']['authentication']['username'], self.config['proxy']['authentication']['password']) if self.config['proxy']['authentication']['enabled'] else None
             with open(self.config['proxy']['proxy_list']) as f:
                 lines = [line.strip() for line in f if line.rstrip()]
@@ -137,6 +154,7 @@ class Sniper:
             pass
 
     async def check_all_proxies(self, proxies):
+        logging.info("Checking all proxies")
         tasks = []
         for proxy in proxies:
             task = asyncio.create_task(self.check_proxy(proxy))
@@ -169,7 +187,6 @@ class Sniper:
         
         @bot.command(name="remove_id")
         async def remove_id(ctx, arg=None):
-            
                     
             if arg is None:
                 return await ctx.reply("You need to enter a id to remove")
@@ -184,7 +201,6 @@ class Sniper:
             self.tasks[arg].cancel()
             del self.items[arg]
             del self.tasks[arg]
-            self.waitTime = 1 * len(self.items) if len(self.items) > 0 else 1
             for item in self.config["items"]:
                 if item["id"] == arg:
                     self.config["items"].remove(item)
@@ -192,6 +208,7 @@ class Sniper:
                 
             with open('config.json', 'w') as f:
                 json.dump(self.config, f, indent=4)
+            logging.debug(f"removed item id {arg}")
             return await ctx.reply("Id successfully removed")
             
         @bot.command(name="add_id")
@@ -223,10 +240,10 @@ class Sniper:
                     break
             self.items[id]['max_buys'] = float('inf') if item['max_buys'] is None else int(item['max_buys'])
             self.items[id]['max_price'] = float('inf') if item['max_price'] is None else int(item['max_price'])
-            self.waitTime = 1 * len(self.items) if len(self.items) > 0 else 1
             async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
                 
                 await ctx.reply("ID successfully added")
+                logging.debug(f"added item id {id}")
                 self.tasks[id] = asyncio.create_task(self.search(session=session, id=id))
                 await asyncio.gather(self.tasks[id])
 
@@ -239,6 +256,7 @@ class Sniper:
         bot.run(self.config.get('discord')['token'])
               
     def check_version(self):
+        logging.debug(f"Checking Version")
         self.task = "Github Checker"
         self._print_stats()
         response = requests.get("https://raw.githubusercontent.com/efenatuyo/ugc-sniper/main/version")
@@ -276,6 +294,7 @@ class Sniper:
         return wait_time
     
     def _setup_accounts(self) -> None:
+        logging.info(f"Setting up accounts")
         self.task = "Account Loader"
         self._print_stats
         cookies = self._load_cookies()
@@ -319,6 +338,7 @@ class Sniper:
         function(self)
             
     async def _get_xcsrf_token(self, cookie) -> dict:
+        logging.debug(f"Scraped x_token")
         async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as client:
               response = await client.post("https://accountsettings.roblox.com/v1/email", ssl = False)
               xcsrf_token = response.headers.get("x-csrf-token")
@@ -370,10 +390,10 @@ class Sniper:
                "collectibleProductId": product_id
          }
          total_errors = 0
+         asyncio.to_thread(logging.info("New Buy Thread Started"))
          async with aiohttp.ClientSession() as client:   
             while True:
                 if not float(self.items[raw_id]['max_buys']) > float(self.items[raw_id]['current_buys']):
-                    self.waitTime((len(self.items) - 1))
                     del self.items[id]
                     for item in self.config['items']:
                         if str(item['id']) == (raw_id):
@@ -419,7 +439,7 @@ class Sniper:
                        print(f"Purchase failed. Response: {json_response}. Retrying purchase...")
                        total_errors += 1
                 else:
-                       self.items[raw_id]['total_buys'] += 1
+                       self.items[raw_id]['current_buys'] += 1
                        for item in self.config['items']:
                            if int(item['id']) == raw_id:
                                self.config["items"].remove(item)
@@ -507,10 +527,8 @@ class Sniper:
                       if datetime.datetime.now() >= start_time:
                          end_date = datetime.datetime.strptime(str(end_date), "%Y-%m-%d %H:%M:%S")
                          if end_date >= datetime.datetime.now():
-                           self.waitTime = len(self.items)
                            pass
                          else:
-                             self.waitTime((len(self.items) - 1))
                              del self.items[id]
                              self.config["items"].remove(itemo)
                 
@@ -518,7 +536,6 @@ class Sniper:
                                 json.dump(self.config, f, indent=4)
                              return
                       else:
-                         self.waitTime((len(self.items) - 1))
                          continue
                     except Exception:
                          pass
@@ -537,7 +554,6 @@ class Sniper:
                         response_text = await response.text()
                         json_response = json.loads(response_text)['data'][0]
                         if int(json_response.get("price", 0)) > self.items[id]['max_price']:
-                             self.waitTime((len(self.items) - 1))
                              del self.items[id]
                              self.config["items"].remove(itemo)
                 
@@ -556,8 +572,21 @@ class Sniper:
                             coroutines = [self.buy_item(item_id = json_response["collectibleItemId"], price = json_response['price'], user_id = self.accounts[i]["id"], creator_id = json_response['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[i]["cookie"], x_token = self.accounts[i]["xcsrf_token"], raw_id = id) for i in self.accounts for _ in range(4)]
                             self.task = "Item Buyer"
                             await asyncio.gather(*coroutines)
+                        else:
+                            if json_response.get('unitsAvailableForConsumption') is int and json_response.get('unitsAvailableForConsumption') == 0:
+                                    self.tasks[id].cancel()
+                                    del self.items[id]
+                                    del self.tasks[id]
+                                    for item in self.config["items"]:
+                                        if item["id"] == id:
+                                            self.config["items"].remove(item)
+                                            break
+                
+                                    with open('config.json', 'w') as f:
+                                        json.dump(self.config, f, indent=4)
+                                
                     t1 = asyncio.get_event_loop().time()
-                    self.last_time = round(t1 - t0, 3)     
+                    self.last_time = round(t1 - t0, 3) 
         except aiohttp.ClientConnectorError as e:
             print(f'Connection error: {e}')
             self.errors += 1
@@ -567,6 +596,7 @@ class Sniper:
         except aiohttp.ClientResponseError as e:
             status_code = int(str(e).split(',')[0])
             if status_code == 429:
+                logging.info("ratelimit hit")
                 await asyncio.sleep(1.5)
             pass
         except asyncio.CancelledError:
@@ -576,6 +606,7 @@ class Sniper:
             self.errors += 1
         finally:
             self.checks += 1
+            await asyncio.to_thread(logging.debug, "New price check completed")
             await asyncio.sleep(self.wait_time(id, proxy = True if len(self.proxies) > 0 else False))
             
                                
@@ -585,7 +616,8 @@ class Sniper:
          self.tasks[current] = asyncio.create_task(self.search(session=session, id=current))
       await asyncio.gather(*self.tasks.values())
           
-    async def start(self):    
+    async def start(self):
+            asyncio.to_thread(logging.info("Started sniping"))
             coroutines = []
             coroutines.append(self.given_id_sniper())
             # coroutines.append(self.auto_search())
@@ -604,6 +636,7 @@ class Sniper:
             os.system(self.clear)
             self._print_stats()
             await asyncio.sleep(self.themeWaitTime)
-
-
-sniper = Sniper()
+ sniper = Sniper()
+except Exception as e:
+    logging.error(f"An error occurred: {traceback.format_exc()}")
+    print("File crashed. Logs have been saved in logs.txt")
