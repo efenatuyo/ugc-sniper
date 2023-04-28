@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 10.0.5
+# version 10.1.5
 
 
 try:
@@ -103,7 +103,7 @@ class Sniper:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "10.0.5"
+        self.version = "10.1.5"
         self.task = None
         self.timeout = self.config['proxy']['timeout_ms'] / 1000 if self.config['proxy']["enabled"] else None
         self.latest_free_item = {}
@@ -113,7 +113,9 @@ class Sniper:
         self.tasks = {}
         self.themeWaitTime = float(self.config.get('theme')['wait_time'])
         self.proxies = []
+        self.proxy_auth = None
         if self.config['proxy']['enabled']:
+            self.proxy_auth = aiohttp.BasicAuth(self.config['proxy']['authentication']['username'], self.config['proxy']['authentication']['password']) if self.config['proxy']['authentication']['enabled'] else None
             with open(self.config['proxy']['proxy_list']) as f:
                 lines = [line.strip() for line in f if line.rstrip()]
             response = asyncio.run(self.check_all_proxies(lines))
@@ -128,7 +130,7 @@ class Sniper:
     async def check_proxy(self, proxy):
         try:
           async with aiohttp.ClientSession() as session:
-            response = await session.get('https://google.com/', timeout=self.timeout, proxy=f"http://{proxy}")
+            response = await session.get('https://google.com/', timeout=self.timeout, proxy=f"http://{proxy}", proxy_auth = self.proxy_auth)
             if response.status_code == 200:
                 return proxy
         except:
@@ -193,40 +195,40 @@ class Sniper:
             return await ctx.reply("Id successfully removed")
             
         @bot.command(name="add_id")
-        async def add_id(ctx, arg=None):
-            if arg is None:
+        async def add_id(ctx, id=None, start=None, end=None, max_price=None, max_buys=None, importance = None):
+            if id is None:
                return await ctx.reply("You need to enter an ID to add")
 
-            if not arg.isdigit():
-                        return await ctx.reply(f"Invalid item id given ID: {arg}")
+            if not id.isdigit():
+                        return await ctx.reply(f"Invalid item id given ID: {id}")
                         
-            if arg in self.tasks:
+            if id in self.tasks:
                return await ctx.reply("ID is currently running")
             
             self.config['items'].append({
-                "id": arg,
-                "start": None,
-                "end": None,
-                "max_price": None,
-                "max_buys": None,
-                "importance": 1
+                "id": id,
+                "start": None if start is None else start,
+                "end": None if end is None else end,
+                "max_price": None if max_price is None else int(max_price),
+                "max_buys": None if max_buys is None else int(max_buys),
+                "importance": 1 if importance is None or not int(importance) > 0 else int(importance)
             })
             with open('config.json', 'w') as f:
                  json.dump(self.config, f, indent=4)
-            self.items[arg] = {}
-            self.items[arg]['current_buys'] = 0
+            self.items[id] = {}
+            self.items[id]['current_buys'] = 0
             for item in self.config["items"]:
-                if int(item['id']) == int(arg):
+                if int(item['id']) == int(id):
                     item = item
                     break
-            self.items[arg]['max_buys'] = float('inf') if item['max_buys'] is None else int(item['max_buys'])
-            self.items[arg]['max_price'] = float('inf') if item['max_price'] is None else int(item['max_price'])
+            self.items[id]['max_buys'] = float('inf') if item['max_buys'] is None else int(item['max_buys'])
+            self.items[id]['max_price'] = float('inf') if item['max_price'] is None else int(item['max_price'])
             self.waitTime = 1 * len(self.items) if len(self.items) > 0 else 1
             async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
                 
                 await ctx.reply("ID successfully added")
-                self.tasks[arg] = asyncio.create_task(self.search(session=session, id=arg, bypass=True))
-                await asyncio.gather(self.tasks[arg])
+                self.tasks[id] = asyncio.create_task(self.search(session=session, id=id))
+                await asyncio.gather(self.tasks[id])
 
             
             
@@ -488,15 +490,12 @@ class Sniper:
             self.checks += 1
             await asyncio.sleep(5)
             
-    async def search(self, session, id, bypass=False) -> None:
-      if not bypass:
-        for item in self.config["items"]:
+    async def search(self, session, id, ) -> None:
+      for item in self.config["items"]:
           itemo = item
           if item["id"] == id:
               start_date  = item['start']
               end_date = item['end']
-      else:
-          date = None
       while True:
         try:
                     if self.config['proxy']['enabled'] and len(self.proxies) > 0:
@@ -533,7 +532,7 @@ class Sniper:
                     async with session.post("https://catalog.roblox.com/v1/catalog/items/details",
                                            json={"items": [{"itemType": "Asset", "id": id}]},
                                            headers={"x-csrf-token": currentAccount['xcsrf_token'], 'Accept': "application/json"},
-                                           cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False, proxy=proxy, timeout=self.timeout) as response:
+                                           cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False, proxy=proxy, timeout=self.timeout, proxy_auth = self.proxy_auth) as response:
                         response.raise_for_status()
                         response_text = await response.text()
                         json_response = json.loads(response_text)['data'][0]

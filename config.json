@@ -5,7 +5,7 @@
     },
     "items": [
         {
-            "id": "13063319555",
+            "id": "13269365050",
             "start": null,
             "end": null,
             "max_price": null,
@@ -21,14 +21,19 @@
     "proxy": {
         "enabled": false,
         "timeout_ms": 1000,
-        "proxy_list": "proxies.txt"
+        "proxy_list": "proxies.txt",
+        "authentication": {
+            "enabled": false,
+            "username": "",
+            "passsword": ""
+        }
     },
     "theme": {
         "name": "main_theme",
         "wait_time": 1
     },
     "discord": {
-        "enabled": false,
+        "enabled": true,
         "prefix": "$",
         "token": ""
     }

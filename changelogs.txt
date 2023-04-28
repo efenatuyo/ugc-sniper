@@ -1,17 +1,7 @@
-update 10.0.0
+update 10.1.5
 
-added theme folder where u can add your custom theme easier and save
-added custom wait time for theme statistics
+discord bot now accepts start, end, max_price, max_buys, importance as arguments
 
-added discord bot saving our data
+themes don't need init anymore (auto imports)
 
-added max price for one item
-added max buys for one item
-added importance for each item
-added end for item (which time to stop)
-
-added proxy support
-proxy checker
-proxy timeout (for checking proxy)
-added proxy algorithm (wait less on proxies, one proxy only allowed to do 60 requests per minute)
-proxy waits 75% less
+proxy auth support
