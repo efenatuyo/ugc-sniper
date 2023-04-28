@@ -26,6 +26,7 @@ try:
     os.system("pip install aiohttp")
     os.system("pip install rapidjson")
     os.system("pip install discord")
+    os.system("pip install logging")
  
  
  logging.basicConfig(filename='logs.txt', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -574,6 +575,7 @@ try:
                             await asyncio.gather(*coroutines)
                         else:
                             if json_response.get('unitsAvailableForConsumption') is int and json_response.get('unitsAvailableForConsumption') == 0:
+                                    self.tasks[id].cancel()
                                     del self.items[id]
                                     del self.tasks[id]
                                     for item in self.config["items"]:
@@ -583,7 +585,6 @@ try:
                 
                                     with open('config.json', 'w') as f:
                                         json.dump(self.config, f, indent=4)
-                                    return
                                 
                     t1 = asyncio.get_event_loop().time()
                     self.last_time = round(t1 - t0, 3) 
@@ -606,6 +607,7 @@ try:
             self.errors += 1
         finally:
             self.checks += 1
+            await asyncio.to_thread(logging.debug, "New price check completed")
             await asyncio.sleep(self.wait_time(id, proxy = True if len(self.proxies) > 0 else False))
             
                                
