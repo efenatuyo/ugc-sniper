@@ -606,7 +606,6 @@ try:
             self.errors += 1
         finally:
             self.checks += 1
-            await asyncio.to_thread(logging.debug, "New price check completed")
             await asyncio.sleep(self.wait_time(id, proxy = True if len(self.proxies) > 0 else False))
             
                                
