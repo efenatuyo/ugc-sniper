@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 10.2.6
+# version 10.2.7
 
 try:
  try:
@@ -42,7 +42,9 @@ try:
  logger.addHandler(handler)
 
 
-   
+ if os.name == 'nt':
+     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+       
  class Sniper:
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -121,7 +123,7 @@ try:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "10.2.6"
+        self.version = "10.2.7"
         self.task = None
         self.timeout = self.config['proxy']['timeout_ms'] / 1000 if self.config['proxy']["enabled"] else None
         self.latest_free_item = {}
@@ -587,7 +589,7 @@ try:
                 
                                     with open('config.json', 'w') as f:
                                         json.dump(self.config, f, indent=4)
-                                    self.tasks[id].cancel()
+                                    return
                                 
                     t1 = asyncio.get_event_loop().time()
                     self.last_time = round(t1 - t0, 3) 
