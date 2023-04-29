@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 10.2.9
+# version 10.2.10
 
 try:
  try:
@@ -281,7 +281,7 @@ try:
         if item_id:
            item = next((item for item in items if item['id'] == item_id), None)
            if not item:
-              return None
+              return 1
            importance = item.get('importance', 1)
            total_importance = importance
            num_items = 1
