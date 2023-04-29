@@ -123,7 +123,7 @@ try:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "10.2.9"
+        self.version = "10.2.10"
         self.task = None
         self.timeout = self.config['proxy']['timeout_ms'] / 1000 if self.config['proxy']["enabled"] else None
         self.latest_free_item = {}
