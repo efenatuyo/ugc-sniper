@@ -1,8 +1,10 @@
 # made by xolo#4942
-# version 10.2.5
+# version 10.2.6
 
 try:
  try:
+  import logging
+  import traceback
   import datetime
   import os
   import uuid
@@ -16,8 +18,6 @@ try:
   from discord.ext import commands
   import themes
   import time
-  import traceback
-  import logging
  except ModuleNotFoundError:
     print("Modules not installed properly installing now")
     os.system("pip install requests")
@@ -121,7 +121,7 @@ try:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "10.2.5"
+        self.version = "10.2.6"
         self.task = None
         self.timeout = self.config['proxy']['timeout_ms'] / 1000 if self.config['proxy']["enabled"] else None
         self.latest_free_item = {}
@@ -391,7 +391,7 @@ try:
                "collectibleProductId": product_id
          }
          total_errors = 0
-         asyncio.to_thread(logging.info("New Buy Thread Started"))
+         await asyncio.to_thread(logging.info, "New Buy Thread Started")
          async with aiohttp.ClientSession() as client:   
             while True:
                 if not float(self.items[raw_id]['max_buys']) > float(self.items[raw_id]['current_buys']):
@@ -439,6 +439,8 @@ try:
                        self.errors += 1
                        print(f"Purchase failed. Response: {json_response}. Retrying purchase...")
                        total_errors += 1
+                       if json_response.get("errorMessage", 0) == "QuantityExhausted":
+                           return
                 else:
                        self.items[raw_id]['current_buys'] += 1
                        for item in self.config['items']:
@@ -525,6 +527,7 @@ try:
                         proxy = None
                     try:
                       start_time = datetime.datetime.strptime(str(start_date), "%Y-%m-%d %H:%M:%S")
+                      print(start_time)
                       if datetime.datetime.now() >= start_time:
                          end_date = datetime.datetime.strptime(str(end_date), "%Y-%m-%d %H:%M:%S")
                          if end_date >= datetime.datetime.now():
@@ -538,7 +541,7 @@ try:
                              return
                       else:
                          continue
-                    except Exception:
+                    except Exception as e:
                          pass
                     self.task = "Item Scraper & Searcher"
                     t0 = asyncio.get_event_loop().time()
@@ -574,8 +577,7 @@ try:
                             self.task = "Item Buyer"
                             await asyncio.gather(*coroutines)
                         else:
-                            if json_response.get('unitsAvailableForConsumption') is int and json_response.get('unitsAvailableForConsumption') == 0:
-                                    self.tasks[id].cancel()
+                            if json_response.get('unitsAvailableForConsumption', 1) == 0:
                                     del self.items[id]
                                     del self.tasks[id]
                                     for item in self.config["items"]:
@@ -585,6 +587,7 @@ try:
                 
                                     with open('config.json', 'w') as f:
                                         json.dump(self.config, f, indent=4)
+                                    self.tasks[id].cancel()
                                 
                     t1 = asyncio.get_event_loop().time()
                     self.last_time = round(t1 - t0, 3) 
@@ -597,7 +600,7 @@ try:
         except aiohttp.ClientResponseError as e:
             status_code = int(str(e).split(',')[0])
             if status_code == 429:
-                logging.info("ratelimit hit")
+                await asyncio.to_thread(logging.info, "Rate limit hit")
                 await asyncio.sleep(1.5)
             pass
         except asyncio.CancelledError:
@@ -611,13 +614,14 @@ try:
             
                                
     async def given_id_sniper(self) -> None:
+     self.task = "Item Scraper & Searcher"
      async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
       for current in self.items:
          self.tasks[current] = asyncio.create_task(self.search(session=session, id=current))
       await asyncio.gather(*self.tasks.values())
           
     async def start(self):
-            asyncio.to_thread(logging.info("Started sniping"))
+            await asyncio.to_thread(logging.info, "Started sniping")
             coroutines = []
             coroutines.append(self.given_id_sniper())
             # coroutines.append(self.auto_search())
@@ -636,7 +640,9 @@ try:
             os.system(self.clear)
             self._print_stats()
             await asyncio.sleep(self.themeWaitTime)
+            
  sniper = Sniper()
 except Exception as e:
     logging.error(f"An error occurred: {traceback.format_exc()}")
     print("File crashed. Logs have been saved in logs.txt")
+    os.system("pause")
