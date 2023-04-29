@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 10.2.8
+# version 10.2.9
 
 try:
  try:
@@ -123,7 +123,7 @@ try:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "10.2.8"
+        self.version = "10.2.9"
         self.task = None
         self.timeout = self.config['proxy']['timeout_ms'] / 1000 if self.config['proxy']["enabled"] else None
         self.latest_free_item = {}
@@ -487,7 +487,7 @@ try:
                         
                           if self.latest_free_item.get("collectibleItemId") is None:
                               continue
-                          await self.ratelimit.take(1, proxy = True if len(self.proxies) > 0 else False)
+                          await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
                           productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                      json={"itemIds": [self.latest_free_item["collectibleItemId"]]},
                                      headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"], 'Accept': "application/json"},
@@ -550,7 +550,7 @@ try:
                 
                     if not id.isdigit():
                         raise Exception(f"Invalid item id given ID: {id}")
-                    await self.ratelimit.take(1, proxy = True if len(self.proxies) > 0 else False)
+                    await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
                     currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
                     async with session.post("https://catalog.roblox.com/v1/catalog/items/details",
                                            json={"items": [{"itemType": "Asset", "id": id}]},
@@ -567,7 +567,7 @@ try:
                                 json.dump(self.config, f, indent=4)
                              return
                         if json_response.get("priceStatus") != "Off Sale" and json_response.get('unitsAvailableForConsumption', 0) > 0:
-                            await self.ratelimit.take(1, proxy = True if len(self.proxies) > 0 else False)
+                            await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
                             productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                                                      json={"itemIds": [json_response["collectibleItemId"]]},
                                                                      headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json"},
@@ -612,7 +612,7 @@ try:
             self.errors += 1
         finally:
             self.checks += 1
-            await asyncio.sleep(self.wait_time(id, proxy = True if len(self.proxies) > 0 else False))
+            await asyncio.sleep(self.wait_time(id, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False))
             
                                
     async def given_id_sniper(self) -> None:
