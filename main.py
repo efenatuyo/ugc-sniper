@@ -1,5 +1,5 @@
 # made by xolo#4942
-# version 10.2.10
+# version 10.2.11
 
 try:
  try:
@@ -123,7 +123,7 @@ try:
         self.last_time = 0
         self.errors = 0
         self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "10.2.10"
+        self.version = "10.2.11"
         self.task = None
         self.timeout = self.config['proxy']['timeout_ms'] / 1000 if self.config['proxy']["enabled"] else None
         self.latest_free_item = {}
@@ -445,9 +445,6 @@ try:
                            return
                 else:
                        self.items[raw_id]['current_buys'] += 1
-                       for item in self.config['items']:
-                           if int(item['id']) == raw_id:
-                               self.config["items"].remove(item)
                                
                        print(f"Purchase successful. Response: {json_response}.")
                        self.buys += 1
@@ -536,10 +533,6 @@ try:
                            pass
                          else:
                              del self.items[id]
-                             self.config["items"].remove(itemo)
-                
-                             with open('config.json', 'w') as f:
-                                json.dump(self.config, f, indent=4)
                              return
                       else:
                          continue
@@ -561,10 +554,6 @@ try:
                         json_response = json.loads(response_text)['data'][0]
                         if int(json_response.get("price", 0)) > self.items[id]['max_price']:
                              del self.items[id]
-                             self.config["items"].remove(itemo)
-                
-                             with open('config.json', 'w') as f:
-                                json.dump(self.config, f, indent=4)
                              return
                         if json_response.get("priceStatus") != "Off Sale" and json_response.get('unitsAvailableForConsumption', 0) > 0:
                             await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
@@ -582,13 +571,6 @@ try:
                             if json_response.get('unitsAvailableForConsumption', 1) == 0:
                                     del self.items[id]
                                     del self.tasks[id]
-                                    for item in self.config["items"]:
-                                        if item["id"] == id:
-                                            self.config["items"].remove(item)
-                                            break
-                
-                                    with open('config.json', 'w') as f:
-                                        json.dump(self.config, f, indent=4)
                                     return
                                 
                     t1 = asyncio.get_event_loop().time()
