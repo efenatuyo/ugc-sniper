@@ -121,13 +121,13 @@ try:
         
         self.items = self.load_item_list
         
-        self.check_version()
-        
         self.users = []
         
-        self.ratelimit = self.bucket(max_tokens=60, refill_interval=60)
-        
         self.accounts = self._setup_accounts()
+        
+        self.check_version()
+        
+        self.ratelimit = self.bucket(max_tokens=60, refill_interval=60)
         
         self._task = None
         self.tasks = {}
