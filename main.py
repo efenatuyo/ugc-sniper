@@ -155,7 +155,7 @@ try:
                 print("Error: Missing one or more required arguments.")
                 return
             
-            if int(data.get("price", 0)) > self.config.get("rooms", {}).get("item_setup", {}).get("max_price")
+            if self.config.get("rooms", {}).get("item_setup", {}).get("max_price") os not None and int(data.get("price", 0)) > self.config.get("rooms", {}).get("item_setup", {}).get("max_price")
                 print("Error: Max price has been reached.")
                 return
             
@@ -485,7 +485,7 @@ try:
          await asyncio.to_thread(logging.info, "New Buy Thread Started")
          async with aiohttp.ClientSession() as client:   
             while True:
-                if not float(self.items.get(raw_id, {}).get('max_buys', 0)) >= float(self.items.get(raw_id, {}).get('current_buys', 1)):
+                if self.items.get(raw_id, {}).get('max_buys', 0) is not None and not float(self.items.get(raw_id, {}).get('max_buys', 0)) >= float(self.items.get(raw_id, {}).get('current_buys', 1)):
                     del self.items[id]
                     for item in self.config['items']:
                         if str(item['id']) == (raw_id):
