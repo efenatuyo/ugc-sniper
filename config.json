@@ -3,27 +3,35 @@
         "enabled": false,
         "url": "https://eee"
     },
-    "items": [
-        {
-            "id": "13269921542",
-            "start": null,
-            "end": null,
-            "max_price": null,
-            "max_buys": null,
-            "importance": 1
-        }
-    ],
+    "items": [        
+    {
+        "id": "13326081449",
+        "start": null,
+        "end": null,
+        "max_price": null,
+        "max_buys": null,
+        "importance": 1
+    }
+],
     "accounts": [
         {
             "cookie": "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|"
         }
     ],
+    "rooms": {
+        "enabled": false,
+        "username": "No Name",
+        "room_code": "my_room"
+    },
+    "use_roblox_game": {
+        "enabled": true
+    },
     "proxy": {
         "enabled": false,
-        "timeout_ms": 1000,
+        "timeout_ms": 10000,
         "proxy_list": "proxies.txt",
         "authentication": {
-            "enabled": false,
+            "enabled": true,
             "username": "",
             "password": ""
         }

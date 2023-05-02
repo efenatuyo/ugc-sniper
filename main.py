@@ -1,6 +1,4 @@
 # made by xolo#4942
-# version 10.2.11
-
 try:
  try:
   import logging
@@ -16,19 +14,20 @@ try:
   import json
   import discord
   from discord.ext import commands
-  import themes
   import time
- except ModuleNotFoundError:
-    print("Modules not installed properly installing now")
+  import socketio
+  from functools import partial
+  from typing import Dict
+  import themes
+ except ModuleNotFoundError as e:
+    print("Modules not installed properly installing now", e)
     os.system("pip install requests")
     os.system("pip install colorama")
     os.system("pip install colorama")
     os.system("pip install aiohttp")
-    os.system("pip install rapidjson")
     os.system("pip install discord")
     os.system("pip install logging")
- 
- 
+    os.system("pip install python-socketio")
  logging.basicConfig(filename='logs.txt', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
  logger = logging.getLogger(__name__)
  logger.setLevel(logging.DEBUG)
@@ -40,12 +39,17 @@ try:
  handler.setFormatter(formatter)
 
  logger.addHandler(handler)
+ 
 
-
+ sio = socketio.AsyncClient()
+ 
  if os.name == 'nt':
      asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-       
+ 
+ ################################################################################################################################      
  class Sniper:
+    VERSION = "11.1.0"
+    
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
             self.max_tokens = max_tokens
@@ -109,44 +113,125 @@ try:
                       
     def __init__(self) -> None:
         logging.info("Started Sniper Class")
-        with open("config.json") as file:
-             self.config = json.load(file)
         
-        self.ratelimit = self.bucket(max_tokens=60, refill_interval=60)    
-        self.webhookEnabled = False if not self.config["webhook"] or self.config["webhook"]["enabled"] == False else True
-        self.webhookUrl = self.config["webhook"]["url"] if self.webhookEnabled else None
-        self.accounts = None
-        self.items = self._load_items()
         self.checks = 0
         self.buys = 0
-        self.request_method = 2
         self.last_time = 0
         self.errors = 0
-        self.clear = "cls" if os.name == 'nt' else "clear"
-        self.version = "10.2.11"
-        self.task = None
-        self.timeout = self.config['proxy']['timeout_ms'] / 1000 if self.config['proxy']["enabled"] else None
-        self.latest_free_item = {}
-        self._setup_accounts()
+        
+        self.items = self.load_item_list
+        
         self.check_version()
+        
+        self.users = []
+        
+        self.ratelimit = self.bucket(max_tokens=60, refill_interval=60)
+        
+        self.accounts = self._setup_accounts()
+        
+        self._task = None
         self.tasks = {}
-        self.themeWaitTime = float(self.config.get('theme')['wait_time'])
+        
         self.proxies = []
-        self.proxy_auth = None
-        if self.config['proxy']['enabled']:
-            logging.info("Proxy enabled")
-            self.proxy_auth = aiohttp.BasicAuth(self.config['proxy']['authentication']['username'], self.config['proxy']['authentication']['password']) if self.config['proxy']['authentication']['enabled'] else None
-            with open(self.config['proxy']['proxy_list']) as f:
-                lines = [line.strip() for line in f if line.rstrip()]
-            response = asyncio.run(self.check_all_proxies(lines))
-            self.proxies = response
-            self.proxy_handler = self.ProxyHandler(self.proxies, 60)
+        
+        @sio.event
+        async def connect():
+            print("Connected to server.")
 
+        @sio.event
+        async def disconnect():
+            print("Disconnected from server.")
+
+        @sio.on("user_disconnected")
+        async def user_disconnected(data):
+            print(f"{data['user']} has left the room")
+            self.users.delete(data['user'])
+    
+
+        async def new_item(self, data):
+            required_args = ["collectibleItemId", "price", "creatorTargetId", "collectibleProductId", "id"]
+            if not all(arg in data for arg in required_args):
+                print("Error: Missing one or more required arguments.")
+                return
+            
+            if int(data.get("price", 0)) > self.items[data['id']]['max_price']:
+                print("Error: Max price has been reached.")
+                return
+            
+            coroutines = [self.buy_item(item_id=data["collectibleItemId"],
+            price=data["price"],
+            user_id=self.accounts[i]["id"],
+            creator_id=data["creatorTargetId"],
+            product_id=data["collectibleProductId"],
+            cookie=self.accounts[i]["cookie"],
+            x_token=self.accounts[i]["xcsrf_token"],
+            raw_id=data["id"]) for i in range(len(self.accounts)) for _ in range(4)]
+            print(f"{data['user']} FOUND A NEW ITEM")
+            await asyncio.gather(*coroutines)
+            
+        
+        @sio.on("user_joined")
+        async def user_joined(data):
+            print(f"{data['user']} has joined your room")
+            self.users.append(data['user'])
+            
+        sio.on("new_item")(partial(new_item, self))
+        
         if self.config.get("discord", False)['enabled']:
             self.run_bot()
         else:
             asyncio.run(self.start())
     
+    def proxy_setup(self):
+        if self.config.get("proxy", {}).get("enabled", False):
+            logging.info("Proxy enabled")
+            lines = self.proxy_list
+            response = asyncio.run(self.check_all_proxies(lines))
+            self.proxies = response
+            self.proxy_handler = self.ProxyHandler(self.proxies, 60)
+    
+    @property
+    def proxy_list(self):
+            with open(self.config['proxy']['proxy_list']) as f: return [line.strip() for line in f if line.rstrip()]
+            
+    @property
+    def rooms(self): return True if self.config.get("rooms", {}).get("enabled", None) else False
+    
+    @property
+    def room_code(self): return self.config.get("rooms", {}).get("room_code", None)
+    
+    @property
+    def username(self): return self.config.get("rooms", {}).get("username", None)
+    
+    @property
+    def webhookEnabled(self): return True if self.config.get("webhook", {}).get("enabled", None) else False
+    
+    @property
+    def webhookUrl(self): return self.config.get("webhook", {}).get("url", None)
+    
+    @property
+    def clear(self): return "cls" if os.name == 'nt' else "clear"
+    
+    @property
+    def themeWaitTime(self): return float(self.config.get('theme', {}).get('wait_time', 1))
+    
+    @property
+    def proxy_auth(self): return aiohttp.BasicAuth(self.config.get("proxy", {}).get("authentication", {}).get("username", None), self.config.get("proxy", {}).get("authentication", {}).get("password", None)) if self.config.get("proxy", {}).get("authentication", {}).get("enabled", None) else None
+    
+    @classmethod
+    @property
+    def version(cls): return cls.VERSION
+    
+    @property
+    def timeout(self): return self.config.get("proxy", {}).get("timeout_ms", None) / 1000 if self.config.get("proxy", {}).get("enabled", None) else None
+    
+    @property
+    def load_item_list(self): return self._load_items()
+      
+    @property
+    def config(self): 
+        with open("config.json") as file: return json.load(file)
+          
     async def check_proxy(self, proxy):
         try:
           async with aiohttp.ClientSession() as session:
@@ -296,7 +381,7 @@ try:
             return wait_time * 0.25
         return wait_time
     
-    def _setup_accounts(self) -> None:
+    def _setup_accounts(self) -> Dict[str, Dict[str, str]]:
         logging.info(f"Setting up accounts")
         self.task = "Account Loader"
         self._print_stats
@@ -307,7 +392,7 @@ try:
               cookies[i]["id"] = response
               cookies[i]["xcsrf_token"] = response2["xcsrf_token"]
               cookies[i]["created"] = response2["created"]
-        self.accounts = cookies
+        return cookies
         
     def _load_cookies(self) -> dict:
             lines = self.config['accounts']
@@ -462,56 +547,7 @@ try:
                             }
 
                             requests.post(self.webhookUrl, json={"content": None, "embeds": [embed_data]})
-
-    async def auto_search(self) -> None:
-     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
-      while True:
-        try:
-            await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
-            async with session.get("https://catalog.roblox.com/v2/search/items/details?Keyword=orange%20teal%20cyan%20red%20green%20topaz%20yellow%20wings%20maroon%20space%20dominus%20lime%20mask%20mossy%20wooden%20crimson%20salmon%20brown%20pastel%20%20ruby%20diamond%20creatorname%20follow%20catalog%20link%20rare%20emerald%20chain%20blue%20deep%20expensive%20furry%20hood%20currency%20coin%20royal%20navy%20ocean%20air%20white%20cyber%20ugc%20verified%20black%20purple%20yellow%20violet%20description%20dark%20bright%20rainbow%20pink%20cyber%20roblox%20multicolor%20light%20gradient%20grey%20gold%20cool%20indigo%20test%20hat%20limited2%20headphones%20emo%20edgy%20back%20front%20lava%20horns%20water%20waist%20face%20neck%20shoulders%20collectable&Category=11&Subcategory=19&CurrencyType=3&MaxPrice=0&salesTypeFilter=2&SortType=3&limit=120", ssl = False) as response:
-                  response.raise_for_status()
-                   
-                  items = (json.loads(await response.text())['data'])
-                  
-                  for item in items:
-                      if item["id"] not in self.scraped_ids:
-                          print(f"Found new free item: {item['name']} (ID: {item['id']})")
-                          self.latest_free_item = item
-                          self.scraped_ids.append(item)
-                          
-                          if self.latest_free_item.get("priceStatus", "Off Sale") == "Off Sale":
-                            continue
-                        
-                          if self.latest_free_item.get("collectibleItemId") is None:
-                              continue
-                          await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
-                          productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
-                                     json={"itemIds": [self.latest_free_item["collectibleItemId"]]},
-                                     headers={"x-csrf-token": self.accounts[str(random.randint(1, len(self.accounts)))]["xcsrf_token"], 'Accept': "application/json"},
-                                     cookies={".ROBLOSECURITY": self.accounts[str(random.randint(1, len(self.accounts)))]["cookie"]}, ssl = False)
-                          response.raise_for_status()
-                          productid_data = json.loads(await  productid_response.text())[0]
-                          coroutines = [self.buy_item(item_id = self.latest_free_item["collectibleItemId"], price = 0, user_id = self.accounts[i]["id"], creator_id = self.latest_free_item['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[i]["cookie"], x_token = self.accounts[i]["xcsrf_token"]) for i in self.accounts] * 4
-                          self.task = "Item Buyer"
-                          await asyncio.gather(*coroutines)
-                          
-        except aiohttp.client_exceptions.ClientConnectorError as e:
-            print(f"Error connecting to host: {e}")
-            self.errors += 1
-        except aiohttp.client_exceptions.ServerDisconnectedError as e:
-            print(f"Server disconnected error: {e}")
-            self.errors += 1
-        except aiohttp.client_exceptions.ClientOSError as e:
-            print(f"Client OS error: {e}")
-            self.errors += 1
-        except aiohttp.client_exceptions.ClientResponseError as e:
-            print(f"Response Error: {e}")
-            self.errors += 1
-            await asyncio.sleep(5)
-        finally:
-            self.checks += 1
-            await asyncio.sleep(5)
-            
+        
     async def search(self, session, id, ) -> None:
       for item in self.config["items"]:
           itemo = item
@@ -563,13 +599,15 @@ try:
                                                                      cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False)
                             response.raise_for_status()
                             productid_data = json.loads(await productid_response.text())[0]
-                            
                             coroutines = [self.buy_item(item_id = json_response["collectibleItemId"], price = json_response['price'], user_id = self.accounts[i]["id"], creator_id = json_response['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[i]["cookie"], x_token = self.accounts[i]["xcsrf_token"], raw_id = id) for i in self.accounts for _ in range(4)]
+                            if self.rooms:
+                                await sio.emit("new_item", data={'item': {"item_id": json_response["collectibleItemId"], "price": json_response['price'], "creator_id": json_response['creatorTargetId'], "raw_id": id}})
                             self.task = "Item Buyer"
                             await asyncio.gather(*coroutines)
                         else:
                             if json_response.get('unitsAvailableForConsumption', 1) == 0:
                                     del self.items[id]
+                                    print(self.items)
                                     del self.tasks[id]
                                     return
                                 
@@ -586,7 +624,6 @@ try:
             if status_code == 429:
                 await asyncio.to_thread(logging.info, "Rate limit hit")
                 await asyncio.sleep(1.5)
-            pass
         except asyncio.CancelledError:
             return
         except asyncio.TimeoutError as e:
@@ -603,10 +640,13 @@ try:
       for current in self.items:
          self.tasks[current] = asyncio.create_task(self.search(session=session, id=current))
       await asyncio.gather(*self.tasks.values())
-          
+    
+        
     async def start(self):
             await asyncio.to_thread(logging.info, "Started sniping")
             coroutines = []
+            if self.rooms:
+                await sio.connect("https://electroniclightpinkfunnel.rfrrgf.repl.co", headers={'room': self.room_code, 'user': self.username})            
             coroutines.append(self.given_id_sniper())
             # coroutines.append(self.auto_search())
             coroutines.append(self.auto_update())
