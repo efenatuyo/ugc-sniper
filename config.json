@@ -23,7 +23,7 @@
         "username": "No Name",
         "room_code": "my_room",
         "item_setup": {
-           "max_price": null
+           "max_price": null,
            "max_buys": null
            }
     },
