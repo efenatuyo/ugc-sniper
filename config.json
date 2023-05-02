@@ -21,7 +21,10 @@
     "rooms": {
         "enabled": false,
         "username": "No Name",
-        "room_code": "my_room"
+        "room_code": "my_room",
+        "item_setup": {
+           "max_buys": null
+           }
     },
     "use_roblox_game": {
         "enabled": true
