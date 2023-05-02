@@ -127,7 +127,8 @@ try:
         
         self.check_version()
         
-        self.ratelimit = self.bucket(max_tokens=60, refill_interval=60)
+        self.ratelmit = None
+        asyncio.run(self.setup_ratelimit())
         
         self._task = None
         self.tasks = {}
@@ -190,6 +191,9 @@ try:
             self.proxies = response
             self.proxy_handler = self.ProxyHandler(self.proxies, 60)
     
+    async def setup_ratelimit(self):
+         self.ratelimit = self.bucket(max_tokens=60, refill_interval=60)
+         
     @property
     def proxy_list(self):
             with open(self.config['proxy']['proxy_list']) as f: return [line.strip() for line in f if line.rstrip()]
