@@ -155,7 +155,7 @@ try:
                 print("Error: Missing one or more required arguments.")
                 return
             
-            if self.config.get("rooms", {}).get("item_setup", {}).get("max_price") os not None and int(data.get("price", 0)) > self.config.get("rooms", {}).get("item_setup", {}).get("max_price"):
+            if self.config.get("rooms", {}).get("item_setup", {}).get("max_price") is not None and int(data.get("price", 0)) > self.config.get("rooms", {}).get("item_setup", {}).get("max_price"):
                 print("Error: Max price has been reached.")
                 return
             
