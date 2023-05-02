@@ -41,7 +41,7 @@ try:
  logger.addHandler(handler)
  
 
- sio = socketio.AsyncClient(ssl=False)
+ sio = socketio.AsyncClient()
  
  if os.name == 'nt':
      asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
