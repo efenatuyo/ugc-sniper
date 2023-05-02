@@ -33,7 +33,7 @@ def _print_stats(self) -> None:
         print(Style.BRIGHT + f"                           [ Total price checks: {Fore.YELLOW}{Style.BRIGHT}{self.checks}{Fore.WHITE}{Style.BRIGHT} ]")
         print()
         if self.rooms:
-                print(Style.BRIGHT + f"                           [ Room Users: {Fore.GREEN}{Style.BRIGHT}{', '.join(self.users)}{Fore.WHITE}{Style.BRIGHT} ]")
+                print(Style.BRIGHT + f"                           [ Room Users: {Fore.GREEN}{Style.BRIGHT}{len(self.users)}{Fore.WHITE}{Style.BRIGHT} ]")
                 print(Style.BRIGHT + f"                           [ Room Code: {Fore.GREEN}{Style.BRIGHT}{self.room_code}{Fore.WHITE}{Style.BRIGHT} ]")
                 print()
         print(Style.BRIGHT + f"                           [ Current Task: {Fore.GREEN}{Style.BRIGHT}{self.task}{Fore.WHITE}{Style.BRIGHT} ]")
