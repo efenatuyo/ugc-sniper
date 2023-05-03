@@ -48,7 +48,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "11.1.0"
+    VERSION = "11.1.1"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -119,16 +119,17 @@ try:
         self.last_time = 0
         self.errors = 0
         
+        self._config = None
+        
         self.items = self.load_item_list
-        
-        self.users = []
-        
-        self.accounts = self._setup_accounts()
         
         self.check_version()
         
-        self.ratelmit = None
-        asyncio.run(self.setup_ratelimit())
+        self.users = []
+        
+        self.ratelimit = self.bucket(max_tokens=60, refill_interval=60)
+        
+        self.accounts = self._setup_accounts()
         
         self._task = None
         self.tasks = {}
@@ -155,7 +156,7 @@ try:
                 print("Error: Missing one or more required arguments.")
                 return
             
-            if self.config.get("rooms", {}).get("item_setup", {}).get("max_price") is not None and int(data.get("price", 0)) > self.config.get("rooms", {}).get("item_setup", {}).get("max_price"):
+            if int(data.get("price", 0)) > self.items[data['id']]['max_price']:
                 print("Error: Max price has been reached.")
                 return
             
@@ -191,9 +192,6 @@ try:
             self.proxies = response
             self.proxy_handler = self.ProxyHandler(self.proxies, 60)
     
-    async def setup_ratelimit(self):
-         self.ratelimit = self.bucket(max_tokens=60, refill_interval=60)
-         
     @property
     def proxy_list(self):
             with open(self.config['proxy']['proxy_list']) as f: return [line.strip() for line in f if line.rstrip()]
@@ -234,8 +232,9 @@ try:
       
     @property
     def config(self): 
-        with open("config.json") as file: return json.load(file)
-          
+        with open("config.json") as file: self._config = json.load(file)
+        return self._config
+        
     async def check_proxy(self, proxy):
         try:
           async with aiohttp.ClientSession() as session:
@@ -287,7 +286,6 @@ try:
                         return await ctx.reply(f"Invalid item id given ID: {arg}")
                         
             if not arg in self.tasks:
-                print(self.tasks)
                 return await ctx.reply("Id is not curently running")
             
             self.tasks[arg].cancel()
@@ -295,7 +293,7 @@ try:
             del self.tasks[arg]
             for item in self.config["items"]:
                 if item["id"] == arg:
-                    self.config["items"].remove(item)
+                    self._config["items"].remove(item)
                     break
                 
             with open('config.json', 'w') as f:
@@ -314,7 +312,7 @@ try:
             if id in self.tasks:
                return await ctx.reply("ID is currently running")
             
-            self.config['items'].append({
+            self._config['items'].append({
                 "id": id,
                 "start": None if start is None else start,
                 "end": None if end is None else end,
@@ -323,7 +321,7 @@ try:
                 "importance": 1 if importance is None or not int(importance) > 0 else int(importance)
             })
             with open('config.json', 'w') as f:
-                 json.dump(self.config, f, indent=4)
+                 json.dump(self._config, f, indent=4)
             self.items[id] = {}
             self.items[id]['current_buys'] = 0
             for item in self.config["items"]:
@@ -485,7 +483,7 @@ try:
          await asyncio.to_thread(logging.info, "New Buy Thread Started")
          async with aiohttp.ClientSession() as client:   
             while True:
-                if self.items.get(raw_id, {}).get('max_buys', 0) is not None and not float(self.items.get(raw_id, {}).get('max_buys', 0)) >= float(self.items.get(raw_id, {}).get('current_buys', 1)):
+                if not float(self.items[raw_id]['max_buys']) > float(self.items[raw_id]['current_buys']):
                     del self.items[id]
                     for item in self.config['items']:
                         if str(item['id']) == (raw_id):
@@ -533,7 +531,7 @@ try:
                        if json_response.get("errorMessage", 0) == "QuantityExhausted":
                            return
                 else:
-                       if raw_id in self.items: self.items[raw_id]['current_buys'] += 1
+                       self.items[raw_id]['current_buys'] += 1
                                
                        print(f"Purchase successful. Response: {json_response}.")
                        self.buys += 1
@@ -554,7 +552,6 @@ try:
         
     async def search(self, session, id, ) -> None:
       for item in self.config["items"]:
-          itemo = item
           if item["id"] == id:
               start_date  = item['start']
               end_date = item['end']
