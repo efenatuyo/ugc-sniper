@@ -119,17 +119,18 @@ try:
         self.last_time = 0
         self.errors = 0
         
-        self._config = None
+        self.items = self.load_item_list
         
         self.users = []
         
-        self.items = self.load_item_list
+        self._config = None
+        
+        self.accounts = self._setup_accounts()
         
         self.check_version()
         
-        self.ratelimit = self.bucket(max_tokens=60, refill_interval=60)
-        
-        self.accounts = self._setup_accounts()
+        self.ratelmit = None
+        asyncio.run(self.setup_ratelimit())
         
         self._task = None
         self.tasks = {}
@@ -156,7 +157,7 @@ try:
                 print("Error: Missing one or more required arguments.")
                 return
             
-            if int(data.get("price", 0)) > self.items[data['id']]['max_price']:
+            if self.config.get("rooms", {}).get("item_setup", {}).get("max_price") is not None and int(data.get("price", 0)) > self.config.get("rooms", {}).get("item_setup", {}).get("max_price"):
                 print("Error: Max price has been reached.")
                 return
             
@@ -192,6 +193,9 @@ try:
             self.proxies = response
             self.proxy_handler = self.ProxyHandler(self.proxies, 60)
     
+    async def setup_ratelimit(self):
+         self.ratelimit = self.bucket(max_tokens=60, refill_interval=60)
+         
     @property
     def proxy_list(self):
             with open(self.config['proxy']['proxy_list']) as f: return [line.strip() for line in f if line.rstrip()]
@@ -483,7 +487,7 @@ try:
          await asyncio.to_thread(logging.info, "New Buy Thread Started")
          async with aiohttp.ClientSession() as client:   
             while True:
-                if not float(self.items[raw_id]['max_buys']) > float(self.items[raw_id]['current_buys']):
+                if self.items.get(raw_id, {}).get('max_buys', 0) is not None and not float(self.items.get(raw_id, {}).get('max_buys', 0)) >= float(self.items.get(raw_id, {}).get('current_buys', 1)):
                     del self.items[id]
                     for item in self.config['items']:
                         if str(item['id']) == (raw_id):
@@ -531,7 +535,7 @@ try:
                        if json_response.get("errorMessage", 0) == "QuantityExhausted":
                            return
                 else:
-                       self.items[raw_id]['current_buys'] += 1
+                       if raw_id in self.items: self.items[raw_id]['current_buys'] += 1
                                
                        print(f"Purchase successful. Response: {json_response}.")
                        self.buys += 1
@@ -552,6 +556,7 @@ try:
         
     async def search(self, session, id, ) -> None:
       for item in self.config["items"]:
+          itemo = item
           if item["id"] == id:
               start_date  = item['start']
               end_date = item['end']
