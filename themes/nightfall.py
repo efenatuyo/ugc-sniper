@@ -17,6 +17,11 @@ title = (f"""
 {Color(0xddd45f)}                       > all we know is that stars will fall and holidays come and go <""")
 
 def _print_stats(self) -> None:
+    isroom = (f"""
+  {Color(0x6e34bb)}Users   {Color(0xffffff)}:  {Color(0xddd45f)}{len(self.users)}
+  {Color(0x6e34bb)}Code  {Color(0xffffff)}:  {Color(0xddd45f)}{self.room_code}
+ {Color(0xffffff)}-----------
+""") if self.rooms else None
     print(f"""{title}
  {Color(0xffffff)}-----------
   {Color(0x6e34bb)}Script  {Color(0xffffff)}:  {Color(0xddd45f)}xolo#4249
@@ -30,5 +35,5 @@ def _print_stats(self) -> None:
   {Color(0x6e34bb)}Errors  {Color(0xffffff)}:  {Color(0xddd45f)}{self.errors}
   {Color(0x6e34bb)}Speed   {Color(0xffffff)}:  {Color(0xddd45f)}{self.last_time}
   {Color(0x6e34bb)}Checks  {Color(0xffffff)}:  {Color(0xddd45f)}{self.checks}
- {Color(0xffffff)}-----------
+ {Color(0xffffff)}-----------{isroom}
 """)
