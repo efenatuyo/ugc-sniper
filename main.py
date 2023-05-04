@@ -48,7 +48,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "11.1.1"
+    VERSION = "11.1.2"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -295,13 +295,13 @@ try:
             self.tasks[arg].cancel()
             del self.items[arg]
             del self.tasks[arg]
-            for item in self.config["items"]:
+            for item in self._config["items"]:
                 if item["id"] == arg:
                     self._config["items"].remove(item)
                     break
                 
             with open('config.json', 'w') as f:
-                json.dump(self.config, f, indent=4)
+                json.dump(self._config, f, indent=4)
             logging.debug(f"removed item id {arg}")
             return await ctx.reply("Id successfully removed")
             
