@@ -48,7 +48,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "11.1.2"
+    VERSION = "12.0.0"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -123,6 +123,8 @@ try:
         
         self.users = []
         
+        self.soldOut = []
+        
         self._config = None
         
         self.accounts = self._setup_accounts()
@@ -133,7 +135,6 @@ try:
         asyncio.run(self.setup_ratelimit())
         
         self._task = None
-        self.tasks = {}
         
         self.proxies = []
         
@@ -145,22 +146,40 @@ try:
         async def disconnect():
             print("Disconnected from server.")
 
-        @sio.on("user_disconnected")
-        async def user_disconnected(data):
+        async def user_disconnected(data, self):
+            if data.get("room_code", "kekw") != self.config.get("rooms", {}).get("room_code"): return
             print(f"{data['user']} has left the room")
             self.users.delete(data['user'])
-    
-
-        async def new_item(self, data):
-            required_args = ["collectibleItemId", "price", "creatorTargetId", "collectibleProductId", "id"]
-            if not all(arg in data for arg in required_args):
-                print("Error: Missing one or more required arguments.")
+            
+        async def new_roblox_item(self, data):
+            if data.get("room_code", "kekw") != self.config.get("rooms", {}).get("room_code"): return
+            
+            required_args = ["CollectibleItemId", "PriceInRobux", "Creator", "CollectibleProductId", "AssetId"]
+            if not all(arg in data['data'] for arg in required_args):
                 return
             
             if self.config.get("rooms", {}).get("item_setup", {}).get("max_price") is not None and int(data.get("price", 0)) > self.config.get("rooms", {}).get("item_setup", {}).get("max_price"):
                 print("Error: Max price has been reached.")
                 return
+            coroutines = [self.buy_item(item_id=data["data"]["CollectibleItemId"],
+            price=data["data"]["PriceInRobux"],
+            user_id=self.accounts[i]["id"],
+            creator_id=data["data"]["Creator"]["Id"],
+            product_id=data["data"]["CollectibleProductId"],
+            cookie=self.accounts[i]["cookie"],
+            x_token=self.accounts[i]["xcsrf_token"],
+            raw_id=data['data']["AssetId"]) for i in self.accounts for _ in range(4)]
+            await asyncio.gather(*coroutines)
             
+        async def new_item(self, data):
+            if data.get("room_code", "kekw") != self.config.get("rooms", {}).get("room_code"): return
+            required_args = ["collectibleItemId", "price", "creatorTargetId", "collectibleProductId", "id"]
+            if not all(arg in data for arg in required_args):
+                return
+            
+            if self.config.get("rooms", {}).get("item_setup", {}).get("max_price") is not None and int(data.get("price", 0)) > self.config.get("rooms", {}).get("item_setup", {}).get("max_price"):
+                print("Error: Max price has been reached.")
+                return
             coroutines = [self.buy_item(item_id=data["collectibleItemId"],
             price=data["price"],
             user_id=self.accounts[i]["id"],
@@ -168,18 +187,19 @@ try:
             product_id=data["collectibleProductId"],
             cookie=self.accounts[i]["cookie"],
             x_token=self.accounts[i]["xcsrf_token"],
-            raw_id=data["id"]) for i in range(len(self.accounts)) for _ in range(4)]
+            raw_id=data["id"]) for i in self.accounts for _ in range(4)]
             print(f"{data['user']} FOUND A NEW ITEM")
             await asyncio.gather(*coroutines)
             
         
-        @sio.on("user_joined")
-        async def user_joined(data):
+        async def user_joined(self, data):
+            if data.get("room_code", "kekw") != self.config.get("rooms", {}).get("room_code"): return
             print(f"{data['user']} has joined your room")
             self.users.append(data['user'])
             
         sio.on("new_item")(partial(new_item, self))
-        
+        sio.on("user_joined")(partial(user_joined, self))
+        sio.on("new_roblox_item")(partial(new_roblox_item, self))
         if self.config.get("discord", False)['enabled']:
             self.run_bot()
         else:
@@ -243,7 +263,7 @@ try:
         try:
           async with aiohttp.ClientSession() as session:
             response = await session.get('https://google.com/', timeout=self.timeout, proxy=f"http://{proxy}", proxy_auth = self.proxy_auth)
-            if response.status_code == 200:
+            if response.status == 200:
                 return proxy
         except:
             pass
@@ -282,22 +302,19 @@ try:
         
         @bot.command(name="remove_id")
         async def remove_id(ctx, arg=None):
-                    
             if arg is None:
                 return await ctx.reply("You need to enter a id to remove")
             
             if not arg.isdigit():
                         return await ctx.reply(f"Invalid item id given ID: {arg}")
                         
-            if not arg in self.tasks:
+            if not arg in self.items:
                 return await ctx.reply("Id is not curently running")
             
-            self.tasks[arg].cancel()
             del self.items[arg]
-            del self.tasks[arg]
-            for item in self._config["items"]:
+            for item in self._config["items"]['item_list']:
                 if item["id"] == arg:
-                    self._config["items"].remove(item)
+                    self._config["items"]['item_list'].remove(item)
                     break
                 
             with open('config.json', 'w') as f:
@@ -306,40 +323,34 @@ try:
             return await ctx.reply("Id successfully removed")
             
         @bot.command(name="add_id")
-        async def add_id(ctx, id=None, start=None, end=None, max_price=None, max_buys=None, importance = None):
+        async def add_id(ctx, id=None, max_price=None, max_buys=None):
             if id is None:
                return await ctx.reply("You need to enter an ID to add")
 
             if not id.isdigit():
                         return await ctx.reply(f"Invalid item id given ID: {id}")
                         
-            if id in self.tasks:
+            if id in self.items:
                return await ctx.reply("ID is currently running")
             
-            self._config['items'].append({
+            self._config['items']['item_list'].append({
                 "id": id,
-                "start": None if start is None else start,
-                "end": None if end is None else end,
                 "max_price": None if max_price is None else int(max_price),
-                "max_buys": None if max_buys is None else int(max_buys),
-                "importance": 1 if importance is None or not int(importance) > 0 else int(importance)
+                "max_buys": None if max_buys is None else int(max_buys)
             })
             with open('config.json', 'w') as f:
                  json.dump(self._config, f, indent=4)
             self.items[id] = {}
             self.items[id]['current_buys'] = 0
-            for item in self.config["items"]:
+            for item in self.config["items"]['item_list']:
                 if int(item['id']) == int(id):
                     item = item
                     break
             self.items[id]['max_buys'] = float('inf') if item['max_buys'] is None else int(item['max_buys'])
             self.items[id]['max_price'] = float('inf') if item['max_price'] is None else int(item['max_price'])
-            async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
                 
-                await ctx.reply("ID successfully added")
-                logging.debug(f"added item id {id}")
-                self.tasks[id] = asyncio.create_task(self.search(session=session, id=id))
-                await asyncio.gather(self.tasks[id])
+            await ctx.reply("ID successfully added")
+            logging.debug(f"added item id {id}")
 
             
             
@@ -367,26 +378,6 @@ try:
         def __getattr__(self, attr):
             return self[attr]
     
-    def wait_time(self, item_id=None, proxy=False):
-        items = self.config['items']
-        if item_id:
-           item = next((item for item in items if item['id'] == item_id), None)
-           if not item:
-              return 1
-           importance = item.get('importance', 1)
-           total_importance = importance
-           num_items = 1
-        else:
-           importance = 1
-           total_importance = sum(item.get('importance', 1) for item in items)
-           num_items = len(items)
-    
-        wait_time = (num_items * importance / total_importance)
-        
-        if proxy:
-            return wait_time * 0.25
-        return wait_time
-    
     def _setup_accounts(self) -> Dict[str, Dict[str, str]]:
         logging.info(f"Setting up accounts")
         self.task = "Account Loader"
@@ -410,7 +401,7 @@ try:
         
     def _load_items(self) -> list:
             dict = {}
-            for item in self.config["items"]:
+            for item in self.config["items"]['item_list']:
                 dict[item['id']] = {}
                 dict[item['id']]['current_buys'] = 0
                 dict[item['id']]['max_buys'] = float('inf') if item['max_buys'] is None else int(item['max_buys'])
@@ -475,7 +466,7 @@ try:
          data = {
                "collectibleItemId": item_id,
                "expectedCurrency": 1,
-               "expectedPrice": price,
+               "expectedPrice": price + 1,
                "expectedPurchaserId": user_id,
                "expectedPurchaserType": "User",
                "expectedSellerId": creator_id,
@@ -484,20 +475,21 @@ try:
                "collectibleProductId": product_id
          }
          total_errors = 0
+         if raw_id in self.soldOut: return
          await asyncio.to_thread(logging.info, "New Buy Thread Started")
-         async with aiohttp.ClientSession() as client:   
+         async with aiohttp.ClientSession() as client: 
             while True:
-                if self.items.get(raw_id, {}).get('max_buys', 0) is not None and not float(self.items.get(raw_id, {}).get('max_buys', 0)) >= float(self.items.get(raw_id, {}).get('current_buys', 1)):
+                if self.items.get(raw_id, {}).get('max_buys', 0) != 0 and not float(self.items.get(raw_id, {}).get('max_buys', 0)) >= float(self.items.get(raw_id, {}).get('current_buys', 1)):
                     del self.items[id]
-                    for item in self.config['items']:
+                    for item in self.config['items']['item_list']:
                         if str(item['id']) == (raw_id):
-                           self.config["items"].remove(item)
+                           self.config["items"]['item_list'].remove(item)
                            break
                 
                     with open('config.json', 'w') as f:
                         json.dump(self.config, f, indent=4)
                     return
-                if total_errors >= 10:
+                if total_errors >= 3:
                     print("Too many errors encountered. Aborting purchase.")
                     return
                  
@@ -519,7 +511,6 @@ try:
                        print("Ratelimit encountered. Retrying purchase in 0.5 seconds...")
                        await asyncio.sleep(0.5)
                        continue
-            
                 try:
                       json_response = await response.json()
                 except aiohttp.ContentTypeError as e:
@@ -533,10 +524,10 @@ try:
                        print(f"Purchase failed. Response: {json_response}. Retrying purchase...")
                        total_errors += 1
                        if json_response.get("errorMessage", 0) == "QuantityExhausted":
+                           self.soldOut.append(raw_id)
                            return
                 else:
                        if raw_id in self.items: self.items[raw_id]['current_buys'] += 1
-                               
                        print(f"Purchase successful. Response: {json_response}.")
                        self.buys += 1
                        if self.webhookEnabled:
@@ -554,12 +545,8 @@ try:
 
                             requests.post(self.webhookUrl, json={"content": None, "embeds": [embed_data]})
         
-    async def search(self, session, id, ) -> None:
-      for item in self.config["items"]:
-          itemo = item
-          if item["id"] == id:
-              start_date  = item['start']
-              end_date = item['end']
+    async def search(self, session) -> None:
+      start_date  = self.config["items"]['start']
       while True:
         try:
                     if self.config['proxy']['enabled'] and len(self.proxies) > 0:
@@ -568,54 +555,46 @@ try:
                         proxy = None
                     try:
                       start_time = datetime.datetime.strptime(str(start_date), "%Y-%m-%d %H:%M:%S")
-                      print(start_time)
                       if datetime.datetime.now() >= start_time:
-                         end_date = datetime.datetime.strptime(str(end_date), "%Y-%m-%d %H:%M:%S")
-                         if end_date >= datetime.datetime.now():
-                           pass
-                         else:
-                             del self.items[id]
-                             return
+                         pass
                       else:
                          continue
                     except Exception as e:
                          pass
                     self.task = "Item Scraper & Searcher"
                     t0 = asyncio.get_event_loop().time()
-                
-                    if not id.isdigit():
-                        raise Exception(f"Invalid item id given ID: {id}")
+                    for id in self.items:
+                        if not id.isdigit():
+                           del self.items[id]
+                           
                     await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
                     currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
                     async with session.post("https://catalog.roblox.com/v1/catalog/items/details",
-                                           json={"items": [{"itemType": "Asset", "id": id}]},
+                                           json={"items": [{"itemType": "Asset", "id": id} for id in self.items]},
                                            headers={"x-csrf-token": currentAccount['xcsrf_token'], 'Accept': "application/json"},
                                            cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False, proxy=proxy, timeout=self.timeout, proxy_auth = self.proxy_auth) as response:
                         response.raise_for_status()
                         response_text = await response.text()
-                        json_response = json.loads(response_text)['data'][0]
-                        if int(json_response.get("price", 0)) > self.items[id]['max_price']:
-                             del self.items[id]
-                             return
-                        if json_response.get("priceStatus") != "Off Sale" and json_response.get('unitsAvailableForConsumption', 0) > 0:
+                        json_response = json.loads(response_text)['data']
+                        for i in json_response:
+                         if int(i.get("price", 0)) > self.items[id]['max_price']:
+                             del self.items[i]
+                         if i.get("priceStatus") != "Off Sale" and i.get('unitsAvailableForConsumption', 0) > 0:
                             await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
                             productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
-                                                                     json={"itemIds": [json_response["collectibleItemId"]]},
+                                                                     json={"itemIds": [i["collectibleItemId"]]},
                                                                      headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json"},
                                                                      cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False)
                             response.raise_for_status()
                             productid_data = json.loads(await productid_response.text())[0]
-                            coroutines = [self.buy_item(item_id = json_response["collectibleItemId"], price = json_response['price'], user_id = self.accounts[i]["id"], creator_id = json_response['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[i]["cookie"], x_token = self.accounts[i]["xcsrf_token"], raw_id = id) for i in self.accounts for _ in range(4)]
+                            coroutines = [self.buy_item(item_id = i["collectibleItemId"], price = i['price'], user_id = self.accounts[o]["id"], creator_id = i['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = id) for o in self.accounts for _ in range(4)]
                             if self.rooms:
-                                await sio.emit("new_item", data={'item': {"item_id": json_response["collectibleItemId"], "price": json_response['price'], "creator_id": json_response['creatorTargetId'], "raw_id": id}})
+                                await sio.emit("new_item", data={'item': {"item_id": i["collectibleItemId"], "price": i['price'], "creator_id": i['creatorTargetId'], "raw_id": id}})
                             self.task = "Item Buyer"
                             await asyncio.gather(*coroutines)
-                        else:
-                            if json_response.get('unitsAvailableForConsumption', 1) == 0:
+                         else:
+                            if i.get('unitsAvailableForConsumption', 1) == 0:
                                     del self.items[id]
-                                    print(self.items)
-                                    del self.tasks[id]
-                                    return
                                 
                     t1 = asyncio.get_event_loop().time()
                     self.last_time = round(t1 - t0, 3) 
@@ -636,16 +615,14 @@ try:
             print(f"Timeout error: {e}")
             self.errors += 1
         finally:
-            self.checks += 1
-            await asyncio.sleep(self.wait_time(id, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False))
+            self.checks += len(self.items)
+            await asyncio.sleep(1)
             
                                
     async def given_id_sniper(self) -> None:
      self.task = "Item Scraper & Searcher"
      async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
-      for current in self.items:
-         self.tasks[current] = asyncio.create_task(self.search(session=session, id=current))
-      await asyncio.gather(*self.tasks.values())
+      await self.search(session=session)
     
         
     async def start(self):
