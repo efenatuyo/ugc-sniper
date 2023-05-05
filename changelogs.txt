@@ -1,3 +1,0 @@
-update 10.2.11
-
-removed bot instantly del item from list after sold out
