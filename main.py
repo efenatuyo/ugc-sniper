@@ -658,7 +658,7 @@ try:
         while True:
             os.system(self.clear)
             self._print_stats()
-            await asyncio.sleep(self.themeWaitTime * 100)
+            await asyncio.sleep(self.themeWaitTime)
             
  sniper = Sniper()
 except Exception as e:
