@@ -18,7 +18,6 @@ try:
   import socketio
   from functools import partial
   from typing import Dict
-  import resource
   import themes
  except ModuleNotFoundError as e:
     print("Modules not installed properly installing now", e)
