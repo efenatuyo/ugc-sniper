@@ -48,7 +48,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "12.0.1"
+    VERSION = "12.0.2"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -163,7 +163,7 @@ try:
             if self.config.get("rooms", {}).get("item_setup", {}).get("max_price") is not None and int(data.get("price", 0)) > self.config.get("rooms", {}).get("item_setup", {}).get("max_price"):
                 print("Error: Max price has been reached.")
                 return
-            
+            print(data["data"]["PriceInRobux"])
             self.totalTasks += 1
             coroutines = [self.buy_item(item_id=data["data"]["CollectibleItemId"],
             price=data["data"]["PriceInRobux"],
@@ -472,7 +472,7 @@ try:
          data = {
                "collectibleItemId": item_id,
                "expectedCurrency": 1,
-               "expectedPrice": price + 1,
+               "expectedPrice": price,
                "expectedPurchaserId": user_id,
                "expectedPurchaserType": "User",
                "expectedSellerId": creator_id,
@@ -658,7 +658,7 @@ try:
         while True:
             os.system(self.clear)
             self._print_stats()
-            await asyncio.sleep(self.themeWaitTime)
+            await asyncio.sleep(self.themeWaitTime * 100)
             
  sniper = Sniper()
 except Exception as e:
