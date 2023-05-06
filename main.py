@@ -18,6 +18,7 @@ try:
   import socketio
   from functools import partial
   from typing import Dict
+  import resource
   import themes
  except ModuleNotFoundError as e:
     print("Modules not installed properly installing now", e)
@@ -48,7 +49,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "12.0.0"
+    VERSION = "12.0.1"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -118,6 +119,7 @@ try:
         self.buys = 0
         self.last_time = 0
         self.errors = 0
+        self.totalTasks = 0
         
         self.items = self.load_item_list
         
@@ -154,6 +156,7 @@ try:
         async def new_roblox_item(self, data):
             if data.get("room_code", "kekw") != self.config.get("rooms", {}).get("room_code"): return
             
+            if self.totalTasks >= 10: return
             required_args = ["CollectibleItemId", "PriceInRobux", "Creator", "CollectibleProductId", "AssetId"]
             if not all(arg in data['data'] for arg in required_args):
                 return
@@ -161,6 +164,8 @@ try:
             if self.config.get("rooms", {}).get("item_setup", {}).get("max_price") is not None and int(data.get("price", 0)) > self.config.get("rooms", {}).get("item_setup", {}).get("max_price"):
                 print("Error: Max price has been reached.")
                 return
+            
+            self.totalTasks += 1
             coroutines = [self.buy_item(item_id=data["data"]["CollectibleItemId"],
             price=data["data"]["PriceInRobux"],
             user_id=self.accounts[i]["id"],
@@ -180,6 +185,8 @@ try:
             if self.config.get("rooms", {}).get("item_setup", {}).get("max_price") is not None and int(data.get("price", 0)) > self.config.get("rooms", {}).get("item_setup", {}).get("max_price"):
                 print("Error: Max price has been reached.")
                 return
+            
+            self.totalTasks += 1
             coroutines = [self.buy_item(item_id=data["collectibleItemId"],
             price=data["price"],
             user_id=self.accounts[i]["id"],
@@ -475,7 +482,9 @@ try:
                "collectibleProductId": product_id
          }
          total_errors = 0
-         if raw_id in self.soldOut: return
+         if raw_id in self.soldOut:
+             self.totalTasks -= 1 
+             return
          await asyncio.to_thread(logging.info, "New Buy Thread Started")
          async with aiohttp.ClientSession() as client: 
             while True:
@@ -488,9 +497,11 @@ try:
                 
                     with open('config.json', 'w') as f:
                         json.dump(self.config, f, indent=4)
+                    self.totalTasks -= 1
                     return
                 if total_errors >= 3:
                     print("Too many errors encountered. Aborting purchase.")
+                    self.totalTasks -= 1
                     return
                  
                 data["idempotencyKey"] = str(uuid.uuid4())
@@ -525,6 +536,7 @@ try:
                        total_errors += 1
                        if json_response.get("errorMessage", 0) == "QuantityExhausted":
                            self.soldOut.append(raw_id)
+                           self.totalTasks -= 1
                            return
                 else:
                        if raw_id in self.items: self.items[raw_id]['current_buys'] += 1
@@ -587,6 +599,7 @@ try:
                                                                      cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False)
                             response.raise_for_status()
                             productid_data = json.loads(await productid_response.text())[0]
+                            self.totalTasks += 1
                             coroutines = [self.buy_item(item_id = i["collectibleItemId"], price = i['price'], user_id = self.accounts[o]["id"], creator_id = i['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = id) for o in self.accounts for _ in range(4)]
                             if self.rooms:
                                 await sio.emit("new_item", data={'item': {"item_id": i["collectibleItemId"], "price": i['price'], "creator_id": i['creatorTargetId'], "raw_id": id}})
