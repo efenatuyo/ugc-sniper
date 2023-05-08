@@ -48,7 +48,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "12.0.2"
+    VERSION = "12.1.2"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -292,30 +292,37 @@ try:
         
         @bot.command(name="queue")
         async def queue(ctx):
-            return await ctx.reply(self.items)
+            try:
+                embed = discord.Embed(title="Item Queue", color=0xffff00, description=f"```json\n{json.dumps(self.items, indent=2)}\n```")
+                return await ctx.reply(embed=embed)
+            except:
+                return await ctx.reply(self.items)
         
         @bot.command(name="stats")
         async def stats(ctx):
-            embed = discord.Embed(title="xolo sniper", color=0x00ff00)
-            embed.set_author(name=f"Version: {self.version}")
-            embed.add_field(name="Loaded items", value=f"{len(self.items)}", inline=True)
-            embed.add_field(name="Total buys", value=f"{self.buys}", inline=True)
-            embed.add_field(name="Total errors", value=f"{self.errors}", inline=True)
-            embed.add_field(name="Last speed", value=f"{self.last_time}", inline=True)
-            embed.add_field(name="Total price checks", value=f"{self.checks}", inline=True)
-            embed.add_field(name="Current task", value=f"{self.task}", inline=False)
+            embed = discord.Embed(title="Sniper Stats", color=0x00ff00)
+            embed.set_author(name=f"Xolo Sniper {self.version}")
+            embed.add_field(name="Loaded Items", value=f"{len(self.items)}", inline=True)
+            embed.add_field(name="Total Buys", value=f"{self.buys}", inline=True)
+            embed.add_field(name="Total Errors", value=f"{self.errors}", inline=True)
+            embed.add_field(name="Last Speed", value=f"{self.last_time}", inline=True)
+            embed.add_field(name="Total Price Checks", value=f"{self.checks}", inline=True)
+            if self.rooms:
+                embed.add_field(name="Room Users", value=f"{len(self.users)}", inline=True)
+                embed.add_field(name="Room Code", value=f"{self.room_code}", inline=True)
+            embed.add_field(name="Current Task", value=f"{self.task}", inline=True)
             return await ctx.reply(embed=embed)
         
         @bot.command(name="remove_id")
         async def remove_id(ctx, arg=None):
             if arg is None:
-                return await ctx.reply("You need to enter a id to remove")
+                return await ctx.reply(":warning: | You need to enter an ID to remove!")
             
             if not arg.isdigit():
-                        return await ctx.reply(f"Invalid item id given ID: {arg}")
+                        return await ctx.reply(f":x: | Invalid given ID: {arg}")
                         
             if not arg in self.items:
-                return await ctx.reply("Id is not curently running")
+                return await ctx.reply(":grey_question: | ID is not curently running.")
             
             del self.items[arg]
             for item in self._config["items"]['item_list']:
@@ -326,18 +333,18 @@ try:
             with open('config.json', 'w') as f:
                 json.dump(self._config, f, indent=4)
             logging.debug(f"removed item id {arg}")
-            return await ctx.reply("Id successfully removed")
+            return await ctx.reply(":white_check_mark: | ID successfully removed!")
             
         @bot.command(name="add_id")
         async def add_id(ctx, id=None, max_price=None, max_buys=None):
             if id is None:
-               return await ctx.reply("You need to enter an ID to add")
+               return await ctx.reply(":warning: | You need to enter an ID to add!")
 
             if not id.isdigit():
-                        return await ctx.reply(f"Invalid item id given ID: {id}")
+                        return await ctx.reply(f":x: | Invalid given ID: {id}")
                         
             if id in self.items:
-               return await ctx.reply("ID is currently running")
+               return await ctx.reply(":grey_question: | ID is currently running.")
             
             self._config['items']['item_list'].append({
                 "id": id,
@@ -355,11 +362,32 @@ try:
             self.items[id]['max_buys'] = float('inf') if item['max_buys'] is None else int(item['max_buys'])
             self.items[id]['max_price'] = float('inf') if item['max_price'] is None else int(item['max_price'])
                 
-            await ctx.reply("ID successfully added")
+            await ctx.reply(":white_check_mark: | ID successfully added!")
             logging.debug(f"added item id {id}")
 
+        @bot.command(name="link")
+        async def link(ctx, id=None):
+            if id is None:
+               return await ctx.reply(":warning: | You need to enter an ID or position to get!")
+
+            if not id.isdigit():
+                        return await ctx.reply(f":x: | Invalid given ID or position: {id}")
             
-            
+            if id in self.items:
+                await ctx.reply(f"https://www.roblox.com/catalog/{id}")
+            elif int(id) <= len(self.items):
+                keys = list(self.items.keys())
+                await ctx.reply(f"https://www.roblox.com/catalog/{keys[int(id) - 1]}")
+            else:
+                return await ctx.reply(f":x: | Invalid given ID or position: {id}")
+
+        @bot.command(name="users")
+        async def users(ctx):
+            if self.rooms:
+                return await ctx.reply(", ".join(self.users))
+            else:
+                return await ctx.reply(":grey_question: | You're not in a room!")
+
         @bot.event
         async def on_ready():
             await self.start()
