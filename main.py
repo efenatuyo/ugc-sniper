@@ -668,8 +668,6 @@ try:
     async def start(self):
             await asyncio.to_thread(logging.info, "Started sniping")
             coroutines = []
-            if self.rooms:
-                await sio.connect("https://electroniclightpinkfunnel.rfrrgf.repl.co", headers={'room': self.room_code, 'user': self.username})            
             coroutines.append(self.given_id_sniper())
             # coroutines.append(self.auto_search())
             coroutines.append(self.auto_update())
