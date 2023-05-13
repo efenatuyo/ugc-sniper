@@ -50,7 +50,7 @@ try:
  #################################################################################################################################
     
  class Sniper:
-    VERSION = "13.0.6"
+    VERSION = "13.0.7"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -498,7 +498,7 @@ try:
     async def buy_item(self, item_id: int, price: int, user_id: int, creator_id: int,
          product_id: int, cookie: str, x_token: str, raw_id: int) -> None:
          if not self.items.get(int(raw_id), {}).get('max_price', 0) > price:
-            del self.items[int(id)]
+            del self.items[int(raw_id)]
             for item in self.config['items']['item_list']:
                 if int(item['id']) == int(raw_id):
                     self.config["items"]['item_list'].remove(item)
@@ -653,6 +653,7 @@ try:
                           if int(i.get("price", 0)) > self.items[int(i['id'])]['max_price']:
                              del self.items[int(i['id'])]
                           if i.get("priceStatus") != "Off Sale" and i.get('unitsAvailableForConsumption', 0) > 0:
+                            
                             await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
                             prodzc = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                                                      json={"itemIds": [i["collectibleItemId"]]},
