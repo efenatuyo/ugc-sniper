@@ -18,8 +18,8 @@ try:
   import socketio
   from functools import partial
   from typing import Dict
-  import themes
   from itertools import islice, cycle
+  import themes
  except ModuleNotFoundError as e:
     print("Modules not installed properly installing now", e)
     os.system("pip install requests")
@@ -47,10 +47,9 @@ try:
  if os.name == 'nt':
      asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
  
- #################################################################################################################################
-    
+ ################################################################################################################################      
  class Sniper:
-    VERSION = "13.0.7"
+    VERSION = "13.0.8"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -94,7 +93,7 @@ try:
                    self.tokens -= 1
                    return True
                 return False
-        
+            
        def __init__(self, proxies, requests_per_minute):
         self.proxies = proxies
         self.token_buckets = {proxy: self.TokenBucket(requests_per_minute, requests_per_minute/60) for proxy in proxies}
@@ -111,8 +110,8 @@ try:
             if self.token_buckets[proxy].consume():
                 return proxy
             self.current_proxy_index = (self.current_proxy_index + 1) % len(self.proxies)  
-     
-                  
+        
+                      
     def __init__(self) -> None:
         logging.info("Started Sniper Class")
         
@@ -121,9 +120,9 @@ try:
         self.last_time = 0
         self.errors = 0
         self.totalTasks = 0
-        self.iretations = 0
         
         self.items = self.load_item_list
+        
         self.users = []
         
         self.soldOut = []
@@ -266,20 +265,7 @@ try:
     def config(self): 
         with open("config.json") as file: self._config = json.load(file)
         return self._config
-    
-    def get_dict_subset(self, data_dict, batch_size=100):
-        total_items = len(data_dict)
-        num_iterations = (total_items + batch_size - 1) // batch_size  # Calculate the number of iterations needed
-        if num_iterations == 0:
-            num_iterations = 1
         
-        iteration = (self.iretations - 1) % num_iterations + 1  # Calculate the effective iteration within the valid range
-        start_index = (iteration - 1) * batch_size
-        end_index = iteration * batch_size
-        keys = list(data_dict.keys())
-        subset_keys = keys[start_index:end_index] + keys[:start_index]  # Include keys from the beginning when cycling
-        return {key: data_dict[key] for key in subset_keys}
-     
     async def check_proxy(self, proxy):
         try:
           async with aiohttp.ClientSession() as session:
@@ -307,7 +293,11 @@ try:
         
         @bot.command(name="queue")
         async def queue(ctx):
-            return await ctx.reply(self.items)
+            try:
+                embed = discord.Embed(title="Item Queue", color=0xffff00, description=f"```json\n{json.dumps(self.items, indent=2)}\n```")
+                return await ctx.reply(embed=embed)
+            except:
+                return await ctx.reply(self.items)
         
         @bot.command(name="stats")
         async def stats(ctx):
@@ -335,7 +325,7 @@ try:
             if not arg in self.items:
                 return await ctx.reply(":grey_question: | ID is not curently running.")
             
-            del self.items[int(arg)]
+            del self.items[arg]
             for item in self._config["items"]['item_list']:
                 if item["id"] == arg:
                     self._config["items"]['item_list'].remove(item)
@@ -364,18 +354,17 @@ try:
             })
             with open('config.json', 'w') as f:
                  json.dump(self._config, f, indent=4)
-                 
-            self.items[int(id)] = {}
-            self.items[int(id)]['current_buys'] = 0
+            self.items[id] = {}
+            self.items[id]['current_buys'] = 0
             for item in self.config["items"]['item_list']:
                 if int(item['id']) == int(id):
                     item = item
                     break
-            self.items[int(id)]['max_buys'] = float('inf') if item['max_buys'] is None else int(item['max_buys'])
-            self.items[int(id)]['max_price'] = float('inf') if item['max_price'] is None else int(item['max_price'])
+            self.items[id]['max_buys'] = float('inf') if item['max_buys'] is None else int(item['max_buys'])
+            self.items[id]['max_price'] = float('inf') if item['max_price'] is None else int(item['max_price'])
                 
             await ctx.reply(":white_check_mark: | ID successfully added!")
-            logging.debug(f"added item id {int(id)}")
+            logging.debug(f"added item id {id}")
 
         @bot.command(name="link")
         async def link(ctx, id=None):
@@ -399,7 +388,7 @@ try:
                 return await ctx.reply(", ".join(self.users))
             else:
                 return await ctx.reply(":grey_question: | You're not in a room!")
-             
+
         @bot.event
         async def on_ready():
             await self.start()
@@ -448,18 +437,16 @@ try:
     def _load_items(self) -> list:
             dict = {}
             for item in self.config["items"]['item_list']:
-                dict[int(item['id'])] = {}
-                dict[int(item['id'])]['current_buys'] = 0
-                dict[int(item['id'])]['max_buys'] = float('inf') if item['max_buys'] is None else int(item['max_buys'])
-                dict[int(item['id'])]['max_price'] = float('inf') if item['max_price'] is None else int(item['max_price'])
+                dict[item['id']] = {}
+                dict[item['id']]['current_buys'] = 0
+                dict[item['id']]['max_buys'] = float('inf') if item['max_buys'] is None else int(item['max_buys'])
+                dict[item['id']]['max_price'] = float('inf') if item['max_price'] is None else int(item['max_price'])
             return dict
                  
     async def _get_user_id(self, cookie) -> str:
        async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as client:
            response = await client.get("https://users.roblox.com/v1/users/authenticated", ssl = False)
-           
            data = await response.json()
-           
            if data.get('id') == None:
               raise Exception("Couldn't scrape user id. Error:", data)
            return data.get('id')
@@ -497,17 +484,7 @@ try:
      
     async def buy_item(self, item_id: int, price: int, user_id: int, creator_id: int,
          product_id: int, cookie: str, x_token: str, raw_id: int) -> None:
-         if not self.items.get(int(raw_id), {}).get('max_price', 0) > price:
-            del self.items[int(raw_id)]
-            for item in self.config['items']['item_list']:
-                if int(item['id']) == int(raw_id):
-                    self.config["items"]['item_list'].remove(item)
-                    break
-                
-            with open('config.json', 'w') as f:
-                json.dump(self.config, f, indent=4)
-            self.totalTasks -= 1
-            return  
+        
          """
             Purchase a limited item on Roblox.
             Args:
@@ -539,10 +516,10 @@ try:
          await asyncio.to_thread(logging.info, "New Buy Thread Started")
          async with aiohttp.ClientSession() as client: 
             while True:
-                if self.items.get(int(raw_id), {}).get('max_buys', 0) != 0 and not float(self.items.get(int(raw_id), {}).get('max_buys', 0)) >= float(self.items.get(int(raw_id), {}).get('current_buys', 1)):
-                    del self.items[int(id)]
+                if self.items.get(raw_id, {}).get('max_buys', 0) != 0 and not float(self.items.get(raw_id, {}).get('max_buys', 0)) >= float(self.items.get(raw_id, {}).get('current_buys', 1)):
+                    del self.items[id]
                     for item in self.config['items']['item_list']:
-                        if int(item['id']) == int(raw_id):
+                        if str(item['id']) == (raw_id):
                            self.config["items"]['item_list'].remove(item)
                            break
                 
@@ -580,11 +557,6 @@ try:
                       print(f"JSON decode error encountered: {e}. Retrying purchase...")
                       total_errors += 1
                       continue
-                except Exception as e:
-                    self.errors += 1
-                    print(f"error encountered: {e}. Retrying purchase...")
-                    total_errors += 1
-                    continue
                   
                 if not json_response["purchased"]:
                        self.errors += 1
@@ -595,13 +567,13 @@ try:
                            self.totalTasks -= 1
                            return
                 else:
-                       if int(raw_id) in self.items: self.items[int(raw_id)]['current_buys'] += 1
+                       if raw_id in self.items: self.items[raw_id]['current_buys'] += 1
                        print(f"Purchase successful. Response: {json_response}.")
                        self.buys += 1
                        if self.webhookEnabled:
                             embed_data = {
                                 "title": "New Item Purchased with Xolo Sniper",
-                                "url": f"https://www.roblox.com/catalog/{raw_id}/XOLOSNIPERONTOP",
+                                "url": f"https://www.roblox.com/catalog/{item_id}/Xolo-Sniper",
                                 "color": 65280,
                                 "author": {
                                     "name": "Purchased limited successfully!"
@@ -616,8 +588,8 @@ try:
     async def search(self, session) -> None:
       start_date  = self.config["items"]['start']
       while True:
-        cycler = cycle(list(self.items.keys()))
         try:
+                    cycler = cycle(list(self.items.keys()))
                     if self.config['proxy']['enabled'] and len(self.proxies) > 0:
                         proxy = f"http://{await self.proxy_handler.newprox()}"
                     else:
@@ -632,44 +604,40 @@ try:
                          pass
                     self.task = "Item Scraper & Searcher"
                     t0 = asyncio.get_event_loop().time()
-                    for id in list(self.items):
-                        try:
-                            try: int(id)
-                            except: del self.items[id]
-                        except: pass
+                    for id in self.items:
+                        if not id.isdigit():
+                           del self.items[id]
                            
                     await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
-                    currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
                     items = {k: self.items[k] for k in islice(cycler, 100)}
+                    currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
                     async with session.post("https://catalog.roblox.com/v1/catalog/items/details",
                                            json={"items": [{"itemType": "Asset", "id": id} for id in items]},
                                            headers={"x-csrf-token": currentAccount['xcsrf_token'], 'Accept': "application/json"},
                                            cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False, proxy=proxy, timeout=self.timeout, proxy_auth = self.proxy_auth) as response:
-                        self.iretations += 1
                         response.raise_for_status()
-                        json_response = (await response.json())['data']
+                        response_text = await response.text()
+                        json_response = json.loads(response_text)['data']
                         for i in json_response:
-                         if int(i['id']) in self.items:
-                          if int(i.get("price", 0)) > self.items[int(i['id'])]['max_price']:
-                             del self.items[int(i['id'])]
-                          if i.get("priceStatus") != "Off Sale" and i.get('unitsAvailableForConsumption', 0) > 0:
-                            
+                         if int(i.get("price", 0)) > self.items[id]['max_price']:
+                             del self.items[i]
+                         if i.get("priceStatus") != "Off Sale" and i.get('unitsAvailableForConsumption', 0) > 0:
                             await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
-                            prodzc = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
+                            productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                                                      json={"itemIds": [i["collectibleItemId"]]},
                                                                      headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json"},
                                                                      cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False)
                             response.raise_for_status()
-                            productid_data = (await prodzc.json())[0]
+                            productid_data = json.loads(await productid_response.text())[0]
                             self.totalTasks += 1
                             coroutines = [self.buy_item(item_id = i["collectibleItemId"], price = i['price'], user_id = self.accounts[o]["id"], creator_id = i['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = id) for o in self.accounts for _ in range(4)]
                             if self.rooms:
                                 await sio.emit("new_item", data={'item': {"item_id": i["collectibleItemId"], "price": i['price'], "creator_id": i['creatorTargetId'], "raw_id": id}})
                             self.task = "Item Buyer"
                             await asyncio.gather(*coroutines)
-                          else:
+                         else:
                             if i.get('unitsAvailableForConsumption', 1) == 0:
-                                    del self.items[int(id)]
+                                    del self.items[id]
                                 
                     t1 = asyncio.get_event_loop().time()
                     self.last_time = round(t1 - t0, 3) 
@@ -713,20 +681,21 @@ try:
                             current_curser = json['nextPageCursor']
                             for item in json['data']:
                                 if item.get('priceStatus', "nyet") == "Off Sale" and not "price" in item and not item['id'] in self.items:
-                                    self.items[int(item['id'])] = {'current_buys': 0, 'max_buys': float('inf'), 'max_price': float("inf") if self.config['items']['auto_search']['max_price'] is None else self.config['items']['auto_search']['max_price']}
+                                    self.items[str(item['id'])] = {'current_buys': 0, 'max_buys': float('inf'), 'max_price': float("inf") if self.config['items']['auto_search']['max_price'] is None else self.config['items']['auto_search']['max_price']}
                         await asyncio.sleep(3)
             self.total_to_search -= 55
             await asyncio.sleep(60)
-        
+              
     async def start(self):
             await asyncio.to_thread(logging.info, "Started sniping")
             coroutines = []
             if self.rooms:
                 await sio.connect("https://electroniclightpinkfunnel.rfrrgf.repl.co", headers={'room': self.room_code, 'user': self.username})
-                
+            coroutines.append(self.given_id_sniper())
+            
             if self.config['items']['auto_search']['enabled']:
                 coroutines.append(self.auto_search())   
-            coroutines.append(self.given_id_sniper())
+                
             coroutines.append(self.auto_update())
             coroutines.append(self.auto_xtoken())
             await asyncio.gather(*coroutines)
@@ -739,6 +708,7 @@ try:
             
     async def auto_update(self):
         while True:
+            os.system(self.clear)
             self._print_stats()
             await asyncio.sleep(self.themeWaitTime)
             
