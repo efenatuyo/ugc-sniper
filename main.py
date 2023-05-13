@@ -49,7 +49,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "13.0.2"
+    VERSION = "13.0.3"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -143,7 +143,7 @@ try:
         
         @sio.event
         async def connect():
-          print("Connected to server.")
+            print("Connected to server.")
 
         @sio.event
         async def disconnect():
@@ -322,7 +322,7 @@ try:
             if not arg in self.items:
                 return await ctx.reply(":grey_question: | ID is not curently running.")
             
-            del self.items[arg]
+            del self.items[int(arg)]
             for item in self._config["items"]['item_list']:
                 if item["id"] == arg:
                     self._config["items"]['item_list'].remove(item)
@@ -352,17 +352,17 @@ try:
             with open('config.json', 'w') as f:
                  f.write(rapidjson.dumps(self._config, indent=4))
                  
-            self.items[id] = {}
-            self.items[id]['current_buys'] = 0
+            self.items[int(id)] = {}
+            self.items[int(id)]['current_buys'] = 0
             for item in self.config["items"]['item_list']:
                 if int(item['id']) == int(id):
                     item = item
                     break
-            self.items[id]['max_buys'] = float('inf') if item['max_buys'] is None else int(item['max_buys'])
-            self.items[id]['max_price'] = float('inf') if item['max_price'] is None else int(item['max_price'])
+            self.items[int(id)]['max_buys'] = float('inf') if item['max_buys'] is None else int(item['max_buys'])
+            self.items[int(id)]['max_price'] = float('inf') if item['max_price'] is None else int(item['max_price'])
                 
             await ctx.reply(":white_check_mark: | ID successfully added!")
-            logging.debug(f"added item id {id}")
+            logging.debug(f"added item id {int(id)}")
 
         @bot.command(name="link")
         async def link(ctx, id=None):
@@ -435,10 +435,10 @@ try:
     def _load_items(self) -> list:
             dict = {}
             for item in self.config["items"]['item_list']:
-                dict[item['id']] = {}
-                dict[item['id']]['current_buys'] = 0
-                dict[item['id']]['max_buys'] = float('inf') if item['max_buys'] is None else int(item['max_buys'])
-                dict[item['id']]['max_price'] = float('inf') if item['max_price'] is None else int(item['max_price'])
+                dict[int(item['id'])] = {}
+                dict[int(item['id'])]['current_buys'] = 0
+                dict[int(item['id'])]['max_buys'] = float('inf') if item['max_buys'] is None else int(item['max_buys'])
+                dict[int(item['id'])]['max_price'] = float('inf') if item['max_price'] is None else int(item['max_price'])
             return dict
                  
     async def _get_user_id(self, cookie) -> str:
@@ -517,7 +517,7 @@ try:
          async with aiohttp.ClientSession() as client: 
             while True:
                 if self.items.get(raw_id, {}).get('max_buys', 0) != 0 and not float(self.items.get(raw_id, {}).get('max_buys', 0)) >= float(self.items.get(raw_id, {}).get('current_buys', 1)):
-                    del self.items[id]
+                    del self.items[int(id)]
                     for item in self.config['items']['item_list']:
                         if str(item['id']) == (raw_id):
                            self.config["items"]['item_list'].remove(item)
@@ -567,7 +567,7 @@ try:
                            self.totalTasks -= 1
                            return
                 else:
-                       if raw_id in self.items: self.items[raw_id]['current_buys'] += 1
+                       if raw_id in self.items: self.items[int(raw_id)]['current_buys'] += 1
                        print(f"Purchase successful. Response: {json_response}.")
                        self.buys += 1
                        if self.webhookEnabled:
@@ -619,8 +619,8 @@ try:
                         response_text = await response.text()
                         json_response = rapidjson.loads(response_text)['data']
                         for i in json_response:
-                         if int(i.get("price", 0)) > self.items[id]['max_price']:
-                             del self.items[i]
+                         if int(i.get("price", 0)) > self.items[int(i['id'])]['max_price']:
+                             del self.items[int(i['id'])]
                          if i.get("priceStatus") != "Off Sale" and i.get('unitsAvailableForConsumption', 0) > 0:
                             await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
                             productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
@@ -637,7 +637,7 @@ try:
                             await asyncio.gather(*coroutines)
                          else:
                             if i.get('unitsAvailableForConsumption', 1) == 0:
-                                    del self.items[id]
+                                    del self.items[int(id)]
                                 
                     t1 = asyncio.get_event_loop().time()
                     self.last_time = round(t1 - t0, 3) 
