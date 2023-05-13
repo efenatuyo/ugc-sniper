@@ -49,7 +49,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "13.0.1"
+    VERSION = "13.0.2"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -329,7 +329,7 @@ try:
                     break
                 
             with open('config.json', 'w') as f:
-                rapidjson.dumps(self._config, f, indent=4)
+                f.write(rapidjson.dumps(self._config, indent=4))
             logging.debug(f"removed item id {arg}")
             return await ctx.reply(":white_check_mark: | ID successfully removed!")
             
@@ -350,7 +350,8 @@ try:
                 "max_buys": None if max_buys is None else int(max_buys)
             })
             with open('config.json', 'w') as f:
-                 rapidjson.dumps(self._config, f, indent=4)
+                 f.write(rapidjson.dumps(self._config, indent=4))
+                 
             self.items[id] = {}
             self.items[id]['current_buys'] = 0
             for item in self.config["items"]['item_list']:
@@ -603,8 +604,10 @@ try:
                     self.task = "Item Scraper & Searcher"
                     t0 = asyncio.get_event_loop().time()
                     for id in list(self.items):
-                        try: int(id)
-                        except: del self.items[id]
+                        try:
+                            try: int(id)
+                            except: del self.items[id]
+                        except: pass
                            
                     await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
                     currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
@@ -612,6 +615,7 @@ try:
                                            json={"items": [{"itemType": "Asset", "id": id} for id in self.items]},
                                            headers={"x-csrf-token": currentAccount['xcsrf_token'], 'Accept': "application/json"},
                                            cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False, proxy=proxy, timeout=self.timeout, proxy_auth = self.proxy_auth) as response:
+                        print(response.status)
                         response.raise_for_status()
                         response_text = await response.text()
                         json_response = rapidjson.loads(response_text)['data']
