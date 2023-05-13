@@ -49,7 +49,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "13.0.0"
+    VERSION = "13.0.1"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -669,7 +669,7 @@ try:
             current_curser = None
             async with aiohttp.ClientSession() as client:
                 for i in range(5):
-                    async with client.get(f"https://catalog.roblox.com/v1/search/items/details?Category=11&salesTypeFilter=1&SortType=3&IncludeNotForSale=True&Limit=30&cursor={current_curser}" if not current_curser is None else f"https://catalog.roblox.com/v1/search/items/details?Category=11&salesTypeFilter=1&SortType=3&IncludeNotForSale=True&Limit=30", headers = {
+                    async with client.get(f"{self.config['items']['auto_search']['search_url']['endpoint']}&cursor={current_curser}" if not current_curser is None else f"{self.config['items']['auto_search']['search_url']['endpoint']}", headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
     "Referer": "https://www.roblox.com/account/settings/security"}) as response:
                         text_response = await response.text()
