@@ -6,7 +6,7 @@
     "items": {
         "start": null,
         "auto_search": {
-            "enabled": true,
+            "enabled": false,
             "max_price": null
         },
 
