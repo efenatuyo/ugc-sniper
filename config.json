@@ -5,9 +5,14 @@
     },
     "items": {
         "start": null,
+        "auto_search": {
+            "enabled": true,
+            "max_price": null
+        },
+
         "item_list": [
             {
-                "id": "13343206862",
+                "id": "13394289606",
                 "max_price": null,
                 "max_buys": null
             }
@@ -21,7 +26,7 @@
     "rooms": {
         "enabled": false,
         "username": "No Name",
-        "room_code": "ENTER ID OF ROBLOX OR RANDOM ROOM TO JOIN",
+        "room_code": "",
         "item_setup": {
             "max_price": null,
             "max_buys": null
@@ -44,6 +49,6 @@
     "discord": {
         "enabled": false,
         "prefix": "$",
-        "token": ""
+        "token": "MTEwMTE1Njk4NzY3ODUxMTIwNQ.GnweEB.edJomTn-S4QeXA0ea3TAgW-UjQ-dnP4HZjvgT4"
     }
 }

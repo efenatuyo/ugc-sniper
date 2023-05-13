@@ -11,7 +11,7 @@ try:
   import requests
   from colorama import Fore, Back, Style
   import aiohttp
-  import json
+  import rapidjson
   import discord
   from discord.ext import commands
   import time
@@ -28,6 +28,7 @@ try:
     os.system("pip install discord")
     os.system("pip install logging")
     os.system("pip install python-socketio")
+    os.system("pip install python-rapidjson")
  logging.basicConfig(filename='logs.txt', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
  logger = logging.getLogger(__name__)
  logger.setLevel(logging.DEBUG)
@@ -48,7 +49,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "12.1.2"
+    VERSION = "13.0.0"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -120,6 +121,7 @@ try:
         self.errors = 0
         self.totalTasks = 0
         
+        self.items = {}
         self.items = self.load_item_list
         
         self.users = []
@@ -262,7 +264,7 @@ try:
       
     @property
     def config(self): 
-        with open("config.json") as file: self._config = json.load(file)
+        with open("config.json") as file: self._config = rapidjson.loads(file.read())
         return self._config
         
     async def check_proxy(self, proxy):
@@ -292,11 +294,7 @@ try:
         
         @bot.command(name="queue")
         async def queue(ctx):
-            try:
-                embed = discord.Embed(title="Item Queue", color=0xffff00, description=f"```json\n{json.dumps(self.items, indent=2)}\n```")
-                return await ctx.reply(embed=embed)
-            except:
-                return await ctx.reply(self.items)
+            return await ctx.reply(self.items)
         
         @bot.command(name="stats")
         async def stats(ctx):
@@ -331,7 +329,7 @@ try:
                     break
                 
             with open('config.json', 'w') as f:
-                json.dump(self._config, f, indent=4)
+                rapidjson.dumps(self._config, f, indent=4)
             logging.debug(f"removed item id {arg}")
             return await ctx.reply(":white_check_mark: | ID successfully removed!")
             
@@ -352,7 +350,7 @@ try:
                 "max_buys": None if max_buys is None else int(max_buys)
             })
             with open('config.json', 'w') as f:
-                 json.dump(self._config, f, indent=4)
+                 rapidjson.dumps(self._config, f, indent=4)
             self.items[id] = {}
             self.items[id]['current_buys'] = 0
             for item in self.config["items"]['item_list']:
@@ -387,7 +385,7 @@ try:
                 return await ctx.reply(", ".join(self.users))
             else:
                 return await ctx.reply(":grey_question: | You're not in a room!")
-
+             
         @bot.event
         async def on_ready():
             await self.start()
@@ -445,7 +443,9 @@ try:
     async def _get_user_id(self, cookie) -> str:
        async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as client:
            response = await client.get("https://users.roblox.com/v1/users/authenticated", ssl = False)
-           data = await response.json()
+           
+           data = rapidjson.loads(await response.text())
+           
            if data.get('id') == None:
               raise Exception("Couldn't scrape user id. Error:", data)
            return data.get('id')
@@ -523,7 +523,7 @@ try:
                            break
                 
                     with open('config.json', 'w') as f:
-                        json.dump(self.config, f, indent=4)
+                        rapidjson.dumps(self.config, f, indent=4)
                     self.totalTasks -= 1
                     return
                 if total_errors >= 3:
@@ -550,7 +550,7 @@ try:
                        await asyncio.sleep(0.5)
                        continue
                 try:
-                      json_response = await response.json()
+                      json_response = rapidjson.loads(await response.text())
                 except aiohttp.ContentTypeError as e:
                       self.errors += 1
                       print(f"JSON decode error encountered: {e}. Retrying purchase...")
@@ -572,7 +572,7 @@ try:
                        if self.webhookEnabled:
                             embed_data = {
                                 "title": "New Item Purchased with Xolo Sniper",
-                                "url": f"https://www.roblox.com/catalog/{item_id}/Xolo-Sniper",
+                                "url": f"https://www.roblox.com/catalog/{raw_id}/XOLOSNIPERONTOP",
                                 "color": 65280,
                                 "author": {
                                     "name": "Purchased limited successfully!"
@@ -602,9 +602,9 @@ try:
                          pass
                     self.task = "Item Scraper & Searcher"
                     t0 = asyncio.get_event_loop().time()
-                    for id in self.items:
-                        if not id.isdigit():
-                           del self.items[id]
+                    for id in list(self.items):
+                        try: int(id)
+                        except: del self.items[id]
                            
                     await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
                     currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
@@ -614,7 +614,7 @@ try:
                                            cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False, proxy=proxy, timeout=self.timeout, proxy_auth = self.proxy_auth) as response:
                         response.raise_for_status()
                         response_text = await response.text()
-                        json_response = json.loads(response_text)['data']
+                        json_response = rapidjson.loads(response_text)['data']
                         for i in json_response:
                          if int(i.get("price", 0)) > self.items[id]['max_price']:
                              del self.items[i]
@@ -625,7 +625,7 @@ try:
                                                                      headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json"},
                                                                      cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False)
                             response.raise_for_status()
-                            productid_data = json.loads(await productid_response.text())[0]
+                            productid_data = rapidjson.loads(await productid_response.text())[0]
                             self.totalTasks += 1
                             coroutines = [self.buy_item(item_id = i["collectibleItemId"], price = i['price'], user_id = self.accounts[o]["id"], creator_id = i['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = id) for o in self.accounts for _ in range(4)]
                             if self.rooms:
@@ -664,14 +664,33 @@ try:
      async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
       await self.search(session=session)
     
+    async def auto_search(self):
+        while True:
+            current_curser = None
+            async with aiohttp.ClientSession() as client:
+                for i in range(5):
+                    async with client.get(f"https://catalog.roblox.com/v1/search/items/details?Category=11&salesTypeFilter=1&SortType=3&IncludeNotForSale=True&Limit=30&cursor={current_curser}" if not current_curser is None else f"https://catalog.roblox.com/v1/search/items/details?Category=11&salesTypeFilter=1&SortType=3&IncludeNotForSale=True&Limit=30", headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
+    "Referer": "https://www.roblox.com/account/settings/security"}) as response:
+                        text_response = await response.text()
+                        json = rapidjson.loads(text_response)
+                        if response.status == 200:
+                            current_curser = json['nextPageCursor']
+                            for item in json['data']:
+                                if item.get('priceStatus', "nyet") == "Off Sale" and not "price" in item and not item['id'] in self.items:
+                                    self.items[int(item['id'])] = {'current_buys': 0, 'max_buys': float('inf'), 'max_price': float("inf") if self.config['items']['auto_search']['max_price'] is None else self.config['items']['auto_search']['max_price']}
+                        await asyncio.sleep(1)
+            await asyncio.sleep(60)
         
     async def start(self):
             await asyncio.to_thread(logging.info, "Started sniping")
             coroutines = []
             if self.rooms:
-                await sio.connect("https://electroniclightpinkfunnel.rfrrgf.repl.co", headers={'room': self.room_code, 'user': self.username})            
+                await sio.connect("https://electroniclightpinkfunnel.rfrrgf.repl.co", headers={'room': self.room_code, 'user': self.username})
+                
+            if self.config['items']['auto_search']['enabled']:
+                coroutines.append(self.auto_search())   
             coroutines.append(self.given_id_sniper())
-            # coroutines.append(self.auto_search())
             coroutines.append(self.auto_update())
             coroutines.append(self.auto_xtoken())
             await asyncio.gather(*coroutines)
@@ -684,7 +703,6 @@ try:
             
     async def auto_update(self):
         while True:
-            os.system(self.clear)
             self._print_stats()
             await asyncio.sleep(self.themeWaitTime)
             
