@@ -11,7 +11,7 @@ try:
   import requests
   from colorama import Fore, Back, Style
   import aiohttp
-  import rapidjson
+  import json
   import discord
   from discord.ext import commands
   import time
@@ -19,6 +19,7 @@ try:
   from functools import partial
   from typing import Dict
   import themes
+  from itertools import islice, cycle
  except ModuleNotFoundError as e:
     print("Modules not installed properly installing now", e)
     os.system("pip install requests")
@@ -28,7 +29,6 @@ try:
     os.system("pip install discord")
     os.system("pip install logging")
     os.system("pip install python-socketio")
-    os.system("pip install python-rapidjson")
  logging.basicConfig(filename='logs.txt', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
  logger = logging.getLogger(__name__)
  logger.setLevel(logging.DEBUG)
@@ -47,9 +47,10 @@ try:
  if os.name == 'nt':
      asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
  
- ################################################################################################################################      
+ #################################################################################################################################
+    
  class Sniper:
-    VERSION = "13.0.4"
+    VERSION = "13.0.5"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -93,7 +94,7 @@ try:
                    self.tokens -= 1
                    return True
                 return False
-            
+        
        def __init__(self, proxies, requests_per_minute):
         self.proxies = proxies
         self.token_buckets = {proxy: self.TokenBucket(requests_per_minute, requests_per_minute/60) for proxy in proxies}
@@ -110,8 +111,8 @@ try:
             if self.token_buckets[proxy].consume():
                 return proxy
             self.current_proxy_index = (self.current_proxy_index + 1) % len(self.proxies)  
-        
-                      
+     
+                  
     def __init__(self) -> None:
         logging.info("Started Sniper Class")
         
@@ -120,10 +121,9 @@ try:
         self.last_time = 0
         self.errors = 0
         self.totalTasks = 0
+        self.iretations = 0
         
-        self.items = {}
         self.items = self.load_item_list
-        
         self.users = []
         
         self.soldOut = []
@@ -264,9 +264,22 @@ try:
       
     @property
     def config(self): 
-        with open("config.json") as file: self._config = rapidjson.loads(file.read())
+        with open("config.json") as file: self._config = json.load(file)
         return self._config
+    
+    def get_dict_subset(self, data_dict, batch_size=100):
+        total_items = len(data_dict)
+        num_iterations = (total_items + batch_size - 1) // batch_size  # Calculate the number of iterations needed
+        if num_iterations == 0:
+            num_iterations = 1
         
+        iteration = (self.iretations - 1) % num_iterations + 1  # Calculate the effective iteration within the valid range
+        start_index = (iteration - 1) * batch_size
+        end_index = iteration * batch_size
+        keys = list(data_dict.keys())
+        subset_keys = keys[start_index:end_index] + keys[:start_index]  # Include keys from the beginning when cycling
+        return {key: data_dict[key] for key in subset_keys}
+     
     async def check_proxy(self, proxy):
         try:
           async with aiohttp.ClientSession() as session:
@@ -329,7 +342,7 @@ try:
                     break
                 
             with open('config.json', 'w') as f:
-                f.write(rapidjson.dumps(self._config, indent=4))
+                json.dump(self._config, f, indent=4)
             logging.debug(f"removed item id {arg}")
             return await ctx.reply(":white_check_mark: | ID successfully removed!")
             
@@ -350,7 +363,7 @@ try:
                 "max_buys": None if max_buys is None else int(max_buys)
             })
             with open('config.json', 'w') as f:
-                 f.write(rapidjson.dumps(self._config, indent=4))
+                 json.dump(self._config, f, indent=4)
                  
             self.items[int(id)] = {}
             self.items[int(id)]['current_buys'] = 0
@@ -445,7 +458,7 @@ try:
        async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": cookie}) as client:
            response = await client.get("https://users.roblox.com/v1/users/authenticated", ssl = False)
            
-           data = rapidjson.loads(await response.text())
+           data = await response.json()
            
            if data.get('id') == None:
               raise Exception("Couldn't scrape user id. Error:", data)
@@ -484,7 +497,17 @@ try:
      
     async def buy_item(self, item_id: int, price: int, user_id: int, creator_id: int,
          product_id: int, cookie: str, x_token: str, raw_id: int) -> None:
-        
+         if not self.items.get(int(raw_id), {}).get('max_price', 0) > price:
+            del self.items[int(id)]
+            for item in self.config['items']['item_list']:
+                if int(item['id']) == int(raw_id):
+                    self.config["items"]['item_list'].remove(item)
+                    break
+                
+            with open('config.json', 'w') as f:
+                json.dump(self.config, f, indent=4)
+            self.totalTasks -= 1
+            return  
          """
             Purchase a limited item on Roblox.
             Args:
@@ -524,7 +547,7 @@ try:
                            break
                 
                     with open('config.json', 'w') as f:
-                        f.write(rapidjson.dumps(self.config, indent=4))
+                        json.dump(self.config, f, indent=4)
                     self.totalTasks -= 1
                     return
                 if total_errors >= 3:
@@ -551,7 +574,7 @@ try:
                        await asyncio.sleep(0.5)
                        continue
                 try:
-                      json_response = rapidjson.loads(await response.text())
+                      json_response = await response.json()
                 except aiohttp.ContentTypeError as e:
                       self.errors += 1
                       print(f"JSON decode error encountered: {e}. Retrying purchase...")
@@ -593,6 +616,7 @@ try:
     async def search(self, session) -> None:
       start_date  = self.config["items"]['start']
       while True:
+        cycler = cycle(list(self.items.keys()))
         try:
                     if self.config['proxy']['enabled'] and len(self.proxies) > 0:
                         proxy = f"http://{await self.proxy_handler.newprox()}"
@@ -616,13 +640,14 @@ try:
                            
                     await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
                     currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
+                    items = {k: self.items[k] for k in islice(cycler, 100)}
                     async with session.post("https://catalog.roblox.com/v1/catalog/items/details",
-                                           json={"items": [{"itemType": "Asset", "id": id} for id in self.items]},
+                                           json={"items": [{"itemType": "Asset", "id": id} for id in items]},
                                            headers={"x-csrf-token": currentAccount['xcsrf_token'], 'Accept': "application/json"},
                                            cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False, proxy=proxy, timeout=self.timeout, proxy_auth = self.proxy_auth) as response:
+                        self.iretations += 1
                         response.raise_for_status()
-                        response_text = await response.text()
-                        json_response = rapidjson.loads(response_text)['data']
+                        json_response = (await response.json())['data']
                         for i in json_response:
                          if int(i['id']) in self.items:
                           if int(i.get("price", 0)) > self.items[int(i['id'])]['max_price']:
@@ -634,7 +659,7 @@ try:
                                                                      headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json"},
                                                                      cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False)
                             response.raise_for_status()
-                            productid_data = rapidjson.loads(await productid_response.text())[0]
+                            productid_data = (await productid_data.json())[0]
                             self.totalTasks += 1
                             coroutines = [self.buy_item(item_id = i["collectibleItemId"], price = i['price'], user_id = self.accounts[o]["id"], creator_id = i['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = id) for o in self.accounts for _ in range(4)]
                             if self.rooms:
@@ -664,7 +689,7 @@ try:
             print(f"Timeout error: {e}")
             self.errors += 1
         finally:
-            self.checks += len(self.items)
+            self.checks += len(items)
             await asyncio.sleep(1)
             
                                
@@ -674,21 +699,22 @@ try:
       await self.search(session=session)
     
     async def auto_search(self):
+        self.total_to_search = 60
         while True:
             current_curser = None
             async with aiohttp.ClientSession() as client:
-                for i in range(5):
+                for i in range(self.total_to_search):
                     async with client.get(f"{self.config['items']['auto_search']['search_url']['endpoint']}&cursor={current_curser}" if not current_curser is None else f"{self.config['items']['auto_search']['search_url']['endpoint']}", headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
     "Referer": "https://www.roblox.com/account/settings/security"}) as response:
-                        text_response = await response.text()
-                        json = rapidjson.loads(text_response)
+                        json = await response.json()
                         if response.status == 200:
                             current_curser = json['nextPageCursor']
                             for item in json['data']:
                                 if item.get('priceStatus', "nyet") == "Off Sale" and not "price" in item and not item['id'] in self.items:
                                     self.items[int(item['id'])] = {'current_buys': 0, 'max_buys': float('inf'), 'max_price': float("inf") if self.config['items']['auto_search']['max_price'] is None else self.config['items']['auto_search']['max_price']}
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(3)
+            self.total_to_search -= 55
             await asyncio.sleep(60)
         
     async def start(self):
