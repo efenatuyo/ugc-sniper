@@ -50,7 +50,7 @@ try:
  #################################################################################################################################
     
  class Sniper:
-    VERSION = "13.0.5"
+    VERSION = "13.0.6"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
