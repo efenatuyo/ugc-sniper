@@ -143,7 +143,7 @@ try:
         
         @sio.event
         async def connect():
-            print("Connected to server.")
+          print("Connected to server.")
 
         @sio.event
         async def disconnect():
@@ -615,7 +615,6 @@ try:
                                            json={"items": [{"itemType": "Asset", "id": id} for id in self.items]},
                                            headers={"x-csrf-token": currentAccount['xcsrf_token'], 'Accept': "application/json"},
                                            cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False, proxy=proxy, timeout=self.timeout, proxy_auth = self.proxy_auth) as response:
-                        print(response.status)
                         response.raise_for_status()
                         response_text = await response.text()
                         json_response = rapidjson.loads(response_text)['data']
