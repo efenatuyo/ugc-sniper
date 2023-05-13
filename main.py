@@ -50,7 +50,7 @@ try:
  #################################################################################################################################
     
  class Sniper:
-    VERSION = "13.0.5"
+    VERSION = "13.0.6"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -654,12 +654,12 @@ try:
                              del self.items[int(i['id'])]
                           if i.get("priceStatus") != "Off Sale" and i.get('unitsAvailableForConsumption', 0) > 0:
                             await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
-                            productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
+                            prodzc = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                                                      json={"itemIds": [i["collectibleItemId"]]},
                                                                      headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json"},
                                                                      cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False)
                             response.raise_for_status()
-                            productid_data = (await productid_data.json())[0]
+                            productid_data = (await prodzc.json())[0]
                             self.totalTasks += 1
                             coroutines = [self.buy_item(item_id = i["collectibleItemId"], price = i['price'], user_id = self.accounts[o]["id"], creator_id = i['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = id) for o in self.accounts for _ in range(4)]
                             if self.rooms:
