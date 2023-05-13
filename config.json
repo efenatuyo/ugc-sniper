@@ -12,6 +12,8 @@
             "search_url": {
                 "endpoint": "https://catalog.roblox.com/v1/search/items/details?Category=11&salesTypeFilter=1&SortType=3&IncludeNotForSale=True&Limit=30"
             }
+            "enabled": false,
+            "max_price": null
         },
 
         "item_list": [
