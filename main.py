@@ -49,7 +49,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "13.0.3"
+    VERSION = "13.0.4"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -516,15 +516,15 @@ try:
          await asyncio.to_thread(logging.info, "New Buy Thread Started")
          async with aiohttp.ClientSession() as client: 
             while True:
-                if self.items.get(raw_id, {}).get('max_buys', 0) != 0 and not float(self.items.get(raw_id, {}).get('max_buys', 0)) >= float(self.items.get(raw_id, {}).get('current_buys', 1)):
+                if self.items.get(int(raw_id), {}).get('max_buys', 0) != 0 and not float(self.items.get(int(raw_id), {}).get('max_buys', 0)) >= float(self.items.get(int(raw_id), {}).get('current_buys', 1)):
                     del self.items[int(id)]
                     for item in self.config['items']['item_list']:
-                        if str(item['id']) == (raw_id):
+                        if int(item['id']) == int(raw_id):
                            self.config["items"]['item_list'].remove(item)
                            break
                 
                     with open('config.json', 'w') as f:
-                        rapidjson.dumps(self.config, f, indent=4)
+                        f.write(rapidjson.dumps(self.config, indent=4))
                     self.totalTasks -= 1
                     return
                 if total_errors >= 3:
@@ -557,6 +557,11 @@ try:
                       print(f"JSON decode error encountered: {e}. Retrying purchase...")
                       total_errors += 1
                       continue
+                except Exception as e:
+                    self.errors += 1
+                    print(f"error encountered: {e}. Retrying purchase...")
+                    total_errors += 1
+                    continue
                   
                 if not json_response["purchased"]:
                        self.errors += 1
@@ -567,7 +572,7 @@ try:
                            self.totalTasks -= 1
                            return
                 else:
-                       if raw_id in self.items: self.items[int(raw_id)]['current_buys'] += 1
+                       if int(raw_id) in self.items: self.items[int(raw_id)]['current_buys'] += 1
                        print(f"Purchase successful. Response: {json_response}.")
                        self.buys += 1
                        if self.webhookEnabled:
@@ -619,9 +624,10 @@ try:
                         response_text = await response.text()
                         json_response = rapidjson.loads(response_text)['data']
                         for i in json_response:
-                         if int(i.get("price", 0)) > self.items[int(i['id'])]['max_price']:
+                         if int(i['id']) in self.items:
+                          if int(i.get("price", 0)) > self.items[int(i['id'])]['max_price']:
                              del self.items[int(i['id'])]
-                         if i.get("priceStatus") != "Off Sale" and i.get('unitsAvailableForConsumption', 0) > 0:
+                          if i.get("priceStatus") != "Off Sale" and i.get('unitsAvailableForConsumption', 0) > 0:
                             await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
                             productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                                                      json={"itemIds": [i["collectibleItemId"]]},
@@ -635,7 +641,7 @@ try:
                                 await sio.emit("new_item", data={'item': {"item_id": i["collectibleItemId"], "price": i['price'], "creator_id": i['creatorTargetId'], "raw_id": id}})
                             self.task = "Item Buyer"
                             await asyncio.gather(*coroutines)
-                         else:
+                          else:
                             if i.get('unitsAvailableForConsumption', 1) == 0:
                                     del self.items[int(id)]
                                 
