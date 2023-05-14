@@ -518,7 +518,7 @@ try:
          async with aiohttp.ClientSession() as client: 
             while True:
                 if self.items.get(raw_id, {}).get('max_buys', 0) != 0 and not float(self.items.get(raw_id, {}).get('max_buys', 0)) >= float(self.items.get(raw_id, {}).get('current_buys', 1)):
-                    del self.items[raw_id]
+                    del self.items[id]
                     for item in self.config['items']['item_list']:
                         if str(item['id']) == (raw_id):
                            self.config["items"]['item_list'].remove(item)
@@ -607,7 +607,7 @@ try:
                     t0 = asyncio.get_event_loop().time()
                     for id in list(self.items):
                         if not id.isdigit():
-                           del self.items[str(i['id'])]
+                           del self.items[id]
                            
                     await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
                     items = {k: self.items[k] for k in islice(cycler, 100)}
@@ -621,11 +621,9 @@ try:
                         response_text = await response.text()
                         json_response = json.loads(response_text)['data']
                         for i in json_response:
-
                          if int(i.get("price", 0)) > self.items[id]['max_price']:
-                             del self.items[i['id']]
+                             del self.items[str(i['id'])]
                              continue
-        
                          if i.get("priceStatus") != "Off Sale" and i.get('unitsAvailableForConsumption', 0) > 0:
                             await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
                             productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
@@ -635,14 +633,14 @@ try:
                             response.raise_for_status()
                             productid_data = json.loads(await productid_response.text())[0]
                             self.totalTasks += 1
-                            coroutines = [self.buy_item(item_id = i["collectibleItemId"], price = i['price'], user_id = self.accounts[o]["id"], creator_id = i['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = str(i['id'])) for o in self.accounts for _ in range(4)]
+                            coroutines = [self.buy_item(item_id = i["collectibleItemId"], price = i['price'], user_id = self.accounts[o]["id"], creator_id = i['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = id) for o in self.accounts for _ in range(4)]
                             if self.rooms:
                                 await sio.emit("new_item", data={'item': {"item_id": i["collectibleItemId"], "price": i['price'], "creator_id": i['creatorTargetId'], "raw_id": id}})
                             self.task = "Item Buyer"
                             await asyncio.gather(*coroutines)
                          else:
                             if i.get('unitsAvailableForConsumption', 1) == 0:
-                                    del self.items[str(i['id'])]
+                                    del self.items[i['id']]
                                 
                     t1 = asyncio.get_event_loop().time()
                     self.last_time = round(t1 - t0, 3)
