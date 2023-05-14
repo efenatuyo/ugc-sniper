@@ -29,6 +29,7 @@ try:
     os.system("pip install discord")
     os.system("pip install logging")
     os.system("pip install python-socketio")
+    
  logging.basicConfig(filename='logs.txt', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
  logger = logging.getLogger(__name__)
  logger.setLevel(logging.DEBUG)
@@ -49,7 +50,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "13.0.8"
+    VERSION = "13.0.9"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -573,7 +574,7 @@ try:
                        if self.webhookEnabled:
                             embed_data = {
                                 "title": "New Item Purchased with Xolo Sniper",
-                                "url": f"https://www.roblox.com/catalog/{item_id}/Xolo-Sniper",
+                                "url": f"https://www.roblox.com/catalog/{raw_id}/Xolo-Sniper",
                                 "color": 65280,
                                 "author": {
                                     "name": "Purchased limited successfully!"
@@ -604,7 +605,7 @@ try:
                          pass
                     self.task = "Item Scraper & Searcher"
                     t0 = asyncio.get_event_loop().time()
-                    for id in self.items:
+                    for id in list(self.items):
                         if not id.isdigit():
                            del self.items[id]
                            
@@ -616,6 +617,7 @@ try:
                                            headers={"x-csrf-token": currentAccount['xcsrf_token'], 'Accept': "application/json"},
                                            cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False, proxy=proxy, timeout=self.timeout, proxy_auth = self.proxy_auth) as response:
                         response.raise_for_status()
+                        assert response.status == 200, "Response declined"
                         response_text = await response.text()
                         json_response = json.loads(response_text)['data']
                         for i in json_response:
@@ -640,10 +642,12 @@ try:
                                     del self.items[id]
                                 
                     t1 = asyncio.get_event_loop().time()
-                    self.last_time = round(t1 - t0, 3) 
+                    self.last_time = round(t1 - t0, 3)
         except aiohttp.ClientConnectorError as e:
             print(f'Connection error: {e}')
             self.errors += 1
+        except AssertionError as e:
+            continue
         except aiohttp.ContentTypeError as e:
             print(f'Content type error: {e}')
             self.errors += 1
@@ -668,8 +672,9 @@ try:
       await self.search(session=session)
     
     async def auto_search(self):
-        self.total_to_search = 60
+        self.total_to_search = 300
         while True:
+          try:
             current_curser = None
             async with aiohttp.ClientSession() as client:
                 for i in range(self.total_to_search):
@@ -677,14 +682,18 @@ try:
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
     "Referer": "https://www.roblox.com/account/settings/security"}) as response:
                         json = await response.json()
-                        if response.status == 200:
-                            current_curser = json['nextPageCursor']
-                            for item in json['data']:
-                                if item.get('priceStatus', "nyet") == "Off Sale" and not "price" in item and not item['id'] in self.items:
+                        assert response.status == 200, "Request declined"
+                        current_curser = json['nextPageCursor']
+                        for item in json['data']:
+                            if item.get('priceStatus', "nyet") == "Off Sale" and not "price" in item and not item['id'] in self.items:
                                     self.items[str(item['id'])] = {'current_buys': 0, 'max_buys': float('inf'), 'max_price': float("inf") if self.config['items']['auto_search']['max_price'] is None else self.config['items']['auto_search']['max_price']}
-                        await asyncio.sleep(3)
-            self.total_to_search -= 55
+                        await asyncio.sleep(5)
+                    self.items = {str(key): value for key, value in self.items.items()}
+            self.total_to_search = 5
             await asyncio.sleep(60)
+          except AssertionError as e:
+              continue
+    
               
     async def start(self):
             await asyncio.to_thread(logging.info, "Started sniping")
@@ -694,7 +703,7 @@ try:
             coroutines.append(self.given_id_sniper())
             
             if self.config['items']['auto_search']['enabled']:
-                coroutines.append(self.auto_search())   
+                coroutines.append(self.auto_search())
                 
             coroutines.append(self.auto_update())
             coroutines.append(self.auto_xtoken())
@@ -703,8 +712,7 @@ try:
     async def auto_xtoken(self):
         while True:
             await asyncio.sleep(5)
-            if not await self._check_xcsrf_token():
-                raise Exception("x_csrf_token couldn't be generated")
+            assert await self._check_xcsrf_token(), "x_csrf_token couldn't be generated"
             
     async def auto_update(self):
         while True:
