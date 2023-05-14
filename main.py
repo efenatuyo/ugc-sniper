@@ -640,7 +640,7 @@ try:
                             await asyncio.gather(*coroutines)
                          else:
                             if i.get('unitsAvailableForConsumption', 1) == 0:
-                                    del self.items[i['id']]
+                                    del self.items[str(i['id'])]
                                 
                     t1 = asyncio.get_event_loop().time()
                     self.last_time = round(t1 - t0, 3)
