@@ -50,7 +50,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "13.0.10"
+    VERSION = "13.0.11"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -621,8 +621,11 @@ try:
                         response_text = await response.text()
                         json_response = json.loads(response_text)['data']
                         for i in json_response:
-                         if int(i.get("price", 0)) > self.items[str(i['id'])]['max_price']:
-                             del self.items[str(i['id'])]
+
+                         if int(i.get("price", 0)) > self.items[id]['max_price']:
+                             del self.items[i['id']]
+                             continue
+        
                          if i.get("priceStatus") != "Off Sale" and i.get('unitsAvailableForConsumption', 0) > 0:
                             await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
                             productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
