@@ -50,7 +50,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "13.0.11"
+    VERSION = "13.1.11"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -198,8 +198,24 @@ try:
             raw_id=data["id"]) for i in self.accounts for _ in range(4)]
             print(f"{data['user']} FOUND A NEW ITEM")
             await asyncio.gather(*coroutines)
-            
         
+        async def new_auto_search(self, data):
+            currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
+            i = data
+            async with aiohttp.ClientSession() as session:
+                async with await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
+                                                    json={"itemIds": [i["collectibleItemId"]]},
+                                                    headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json"},
+                                                    cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False) as productid_response:
+                    productid_response.raise_for_status()
+                    productid_data = json.loads(await productid_response.text())[0]
+                    self.totalTasks += 1
+                    coroutines = [self.buy_item(item_id = i["collectibleItemId"], price = i['price'], user_id = self.accounts[o]["id"], creator_id = i['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = id, bypass=True) for o in self.accounts for _ in range(4)]
+                    if self.rooms:
+                        await sio.emit("new_item", data={'item': {"item_id": i["collectibleItemId"], "price": i['price'], "creator_id": i['creatorTargetId'], "raw_id": id}})
+                    self.task = "Item Buyer"
+                    await asyncio.gather(*coroutines)
+            
         async def user_joined(self, data):
             if data.get("room_code", "kekw") != self.config.get("rooms", {}).get("room_code"): return
             print(f"{data['user']} has joined your room")
@@ -208,6 +224,7 @@ try:
         sio.on("new_item")(partial(new_item, self))
         sio.on("user_joined")(partial(user_joined, self))
         sio.on("new_roblox_item")(partial(new_roblox_item, self))
+        sio.on("new_auto_search")(partial(new_auto_search, self))
         if self.config.get("discord", False)['enabled']:
             self.run_bot()
         else:
@@ -484,7 +501,7 @@ try:
       return False
      
     async def buy_item(self, item_id: int, price: int, user_id: int, creator_id: int,
-         product_id: int, cookie: str, x_token: str, raw_id: int) -> None:
+         product_id: int, cookie: str, x_token: str, raw_id: int, bypass=False) -> None:
         
          """
             Purchase a limited item on Roblox.
@@ -517,7 +534,7 @@ try:
          await asyncio.to_thread(logging.info, "New Buy Thread Started")
          async with aiohttp.ClientSession() as client: 
             while True:
-                if self.items.get(raw_id, {}).get('max_buys', 0) != 0 and not float(self.items.get(raw_id, {}).get('max_buys', 0)) >= float(self.items.get(raw_id, {}).get('current_buys', 1)):
+                if not bypass and self.items.get(raw_id, {}).get('max_buys', 0) != 0 and not float(self.items.get(raw_id, {}).get('max_buys', 0)) >= float(self.items.get(raw_id, {}).get('current_buys', 1)):
                     del self.items[id]
                     for item in self.config['items']['item_list']:
                         if str(item['id']) == (raw_id):
@@ -536,55 +553,55 @@ try:
                 data["idempotencyKey"] = str(uuid.uuid4())
                 
                 try:
-                    response = await client.post(f"https://apis.roblox.com/marketplace-sales/v1/item/{item_id}/purchase-item",
+                    async with client.post(f"https://apis.roblox.com/marketplace-sales/v1/item/{item_id}/purchase-item",
                            json=data,
                            headers={"x-csrf-token": x_token},
-                           cookies={".ROBLOSECURITY": cookie}, ssl = False)
+                           cookies={".ROBLOSECURITY": cookie}, ssl = False) as response:
+                                        
+                        if response.status == 429:
+                            print("Ratelimit encountered. Retrying purchase in 0.5 seconds...")
+                            await asyncio.sleep(0.5)
+                            continue
+                        try:
+                            json_response = await response.json()
+                        except aiohttp.ContentTypeError as e:
+                            self.errors += 1
+                            print(f"JSON decode error encountered: {e}. Retrying purchase...")
+                            total_errors += 1
+                            continue
+                  
+                        if not json_response["purchased"]:
+                            self.errors += 1
+                            print(f"Purchase failed. Response: {json_response}. Retrying purchase...")
+                            total_errors += 1
+                            if json_response.get("errorMessage", 0) == "QuantityExhausted":
+                                self.soldOut.append(raw_id)
+                                self.totalTasks -= 1
+                                return
+                        else:
+                            if raw_id in self.items: self.items[raw_id]['current_buys'] += 1
+                            print(f"Purchase successful. Response: {json_response}.")
+                            self.buys += 1
+                            if self.webhookEnabled:
+                                embed_data = {
+                                    "title": "New Item Purchased with Xolo Sniper",
+                                    "url": f"https://www.roblox.com/catalog/{raw_id}/Xolo-Sniper",
+                                    "color": 65280,
+                                    "author": {
+                                        "name": "Purchased limited successfully!"
+                                    },
+                                    "footer": {
+                                        "text": "Xolo's Sniper"
+                                    }
+                                }
+
+                                requests.post(self.webhookUrl, json={"content": None, "embeds": [embed_data]})
                 
                 except aiohttp.ClientConnectorError as e:
                     self.errors += 1
                     print(f"Connection error encountered: {e}. Retrying purchase...")
                     total_errors += 1
                     continue
-                    
-                if response.status == 429:
-                       print("Ratelimit encountered. Retrying purchase in 0.5 seconds...")
-                       await asyncio.sleep(0.5)
-                       continue
-                try:
-                      json_response = await response.json()
-                except aiohttp.ContentTypeError as e:
-                      self.errors += 1
-                      print(f"JSON decode error encountered: {e}. Retrying purchase...")
-                      total_errors += 1
-                      continue
-                  
-                if not json_response["purchased"]:
-                       self.errors += 1
-                       print(f"Purchase failed. Response: {json_response}. Retrying purchase...")
-                       total_errors += 1
-                       if json_response.get("errorMessage", 0) == "QuantityExhausted":
-                           self.soldOut.append(raw_id)
-                           self.totalTasks -= 1
-                           return
-                else:
-                       if raw_id in self.items: self.items[raw_id]['current_buys'] += 1
-                       print(f"Purchase successful. Response: {json_response}.")
-                       self.buys += 1
-                       if self.webhookEnabled:
-                            embed_data = {
-                                "title": "New Item Purchased with Xolo Sniper",
-                                "url": f"https://www.roblox.com/catalog/{raw_id}/Xolo-Sniper",
-                                "color": 65280,
-                                "author": {
-                                    "name": "Purchased limited successfully!"
-                                },
-                                "footer": {
-                                "text": "Xolo's Sniper"
-                                }
-                            }
-
-                            requests.post(self.webhookUrl, json={"content": None, "embeds": [embed_data]})
         
     async def search(self, session) -> None:
       start_date  = self.config["items"]['start']
@@ -625,12 +642,12 @@ try:
                              del self.items[str(i['id'])]
                              continue
                          if i.get("priceStatus") != "Off Sale" and i.get('unitsAvailableForConsumption', 0) > 0:
-                            await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
-                            productid_response = await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
+                           await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
+                           async with await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                                                      json={"itemIds": [i["collectibleItemId"]]},
                                                                      headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json"},
-                                                                     cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False)
-                            response.raise_for_status()
+                                                                     cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False) as productid_response:
+                            productid_response.raise_for_status()
                             productid_data = json.loads(await productid_response.text())[0]
                             self.totalTasks += 1
                             coroutines = [self.buy_item(item_id = i["collectibleItemId"], price = i['price'], user_id = self.accounts[o]["id"], creator_id = i['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = id) for o in self.accounts for _ in range(4)]
@@ -671,40 +688,13 @@ try:
      self.task = "Item Scraper & Searcher"
      async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
       await self.search(session=session)
-    
-    async def auto_search(self):
-        self.total_to_search = 300
-        while True:
-          try:
-            current_curser = None
-            async with aiohttp.ClientSession() as client:
-                for i in range(self.total_to_search):
-                    async with client.get(f"{self.config['items']['auto_search']['search_url']['endpoint']}&cursor={current_curser}" if not current_curser is None else f"{self.config['items']['auto_search']['search_url']['endpoint']}", headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
-    "Referer": "https://www.roblox.com/account/settings/security"}) as response:
-                        json = await response.json()
-                        assert response.status == 200, "Request declined"
-                        current_curser = json['nextPageCursor']
-                        for item in json['data']:
-                            if item.get('priceStatus', "nyet") == "Off Sale" and not "price" in item and not item['id'] in self.items:
-                                    self.items[str(item['id'])] = {'current_buys': 0, 'max_buys': float('inf'), 'max_price': float("inf") if self.config['items']['auto_search']['max_price'] is None else self.config['items']['auto_search']['max_price']}
-                        await asyncio.sleep(5)
-                    self.items = {str(key): value for key, value in self.items.items()}
-            self.total_to_search = 5
-            await asyncio.sleep(60)
-          except AssertionError as e:
-              continue
-    
-              
+                  
     async def start(self):
             await asyncio.to_thread(logging.info, "Started sniping")
             coroutines = []
             if self.rooms:
                 await sio.connect("https://electroniclightpinkfunnel.rfrrgf.repl.co", headers={'room': self.room_code, 'user': self.username})
             coroutines.append(self.given_id_sniper())
-            
-            if self.config['items']['auto_search']['enabled']:
-                coroutines.append(self.auto_search())
                 
             coroutines.append(self.auto_update())
             coroutines.append(self.auto_xtoken())
