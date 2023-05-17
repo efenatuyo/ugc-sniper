@@ -685,7 +685,7 @@ try:
                                
     async def given_id_sniper(self) -> None:
      self.task = "Item Scraper & Searcher"
-    await self.search()
+     await self.search()
                   
     async def start(self):
             await asyncio.to_thread(logging.info, "Started sniping")
