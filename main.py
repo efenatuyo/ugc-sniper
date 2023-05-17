@@ -50,7 +50,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "13.1.12"
+    VERSION = "13.1.13"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -208,11 +208,9 @@ try:
                                                     headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json"},
                                                     cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False) as productid_response:
                     productid_response.raise_for_status()
-                    productid_data = json.loads(await productid_response.text())[0]
+                    productid_data = (productid_response.json())[0]
                     self.totalTasks += 1
                     coroutines = [self.buy_item(item_id = i["collectibleItemId"], price = i['price'], user_id = self.accounts[o]["id"], creator_id = i['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = id, bypass=True) for o in self.accounts for _ in range(4)]
-                    if self.rooms:
-                        await sio.emit("new_item", data={'item': {"item_id": i["collectibleItemId"], "price": i['price'], "creator_id": i['creatorTargetId'], "raw_id": id}})
                     self.task = "Item Buyer"
                     await asyncio.gather(*coroutines)
             
