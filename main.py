@@ -50,7 +50,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "13.1.11"
+    VERSION = "13.1.12"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -201,7 +201,7 @@ try:
         
         async def new_auto_search(self, data):
             currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
-            i = data
+            i = data['data']
             async with aiohttp.ClientSession() as session:
                 async with await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                                     json={"itemIds": [i["collectibleItemId"]]},
