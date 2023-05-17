@@ -50,7 +50,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "13.1.13"
+    VERSION = "13.1.14"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -601,7 +601,8 @@ try:
                     total_errors += 1
                     continue
         
-    async def search(self, session) -> None:
+    async def search(self) -> None:
+     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
       start_date  = self.config["items"]['start']
       while True:
         try:
@@ -684,8 +685,7 @@ try:
                                
     async def given_id_sniper(self) -> None:
      self.task = "Item Scraper & Searcher"
-     async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None)) as session:
-      await self.search(session=session)
+    await self.search()
                   
     async def start(self):
             await asyncio.to_thread(logging.info, "Started sniping")
