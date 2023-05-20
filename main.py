@@ -50,7 +50,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "13.1.15"
+    VERSION = "13.2.15"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -199,6 +199,12 @@ try:
             print(f"{data['user']} FOUND A NEW ITEM")
             await asyncio.gather(*coroutines)
         
+        async def new_auto_search_items(self, data):
+            for key, value in data['data'].items():
+                if key not in self.items:
+                    self.items[key] = value
+        
+        
         async def new_auto_search(self, data):
             currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
             i = data['data']
@@ -213,7 +219,7 @@ try:
                     coroutines = [self.buy_item(item_id = i["collectibleItemId"], price = i['price'], user_id = self.accounts[o]["id"], creator_id = i['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = id, bypass=True) for o in self.accounts for _ in range(4)]
                     self.task = "Item Buyer"
                     await asyncio.gather(*coroutines)
-            
+    
         async def user_joined(self, data):
             if data.get("room_code", "kekw") != self.config.get("rooms", {}).get("room_code"): return
             print(f"{data['user']} has joined your room")
@@ -222,6 +228,7 @@ try:
         sio.on("new_item")(partial(new_item, self))
         sio.on("user_joined")(partial(user_joined, self))
         sio.on("new_roblox_item")(partial(new_roblox_item, self))
+        sio.on("new_auto_search_items")(partial(new_auto_search_items, self))
         sio.on("new_auto_search")(partial(new_auto_search, self))
         if self.config.get("discord", False)['enabled']:
             self.run_bot()
@@ -695,7 +702,13 @@ try:
             await asyncio.to_thread(logging.info, "Started sniping")
             coroutines = []
             if self.rooms:
-                await sio.connect("https://cookingcoocksswingingaroundcooks.retre.repl.co", headers={'room': self.room_code, 'user': self.username})
+                await sio.connect("https://cookingcoocksswingingaroundcooks.sawasaw.repl.co", headers={'room': self.room_code, 'user': self.username})
+                req = requests.post("https://cookingcoocksswingingaroundcooks.sawasaw.repl.co/items")
+                formatted = req.json()
+                for key, value in formatted.items():
+                    if key not in self.items:
+                        self.items[key] = value
+                
             coroutines.append(self.given_id_sniper())
                 
             coroutines.append(self.auto_update())
