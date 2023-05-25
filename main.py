@@ -50,7 +50,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "13.2.15"
+    VERSION = "13.2.16"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -702,8 +702,9 @@ try:
             await asyncio.to_thread(logging.info, "Started sniping")
             coroutines = []
             if self.rooms:
-                await sio.connect("https://cookingcoocksswingingaroundcooks.sawasaw.repl.co", headers={'room': self.room_code, 'user': self.username})
-                req = requests.post("https://cookingcoocksswingingaroundcooks.sawasaw.repl.co/items")
+                await sio.connect("https://robloxfnaf.bicblackxolo.repl.co", headers={'room': self.room_code, 'user': self.username})
+                req = requests.post("https://robloxfnaf.bicblackxolo.repl.co/items")
+                print(req)
                 formatted = req.json()
                 for key, value in formatted.items():
                     if key not in self.items:
