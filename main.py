@@ -50,7 +50,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "13.3.16"
+    VERSION = "13.3.17"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -580,14 +580,14 @@ try:
                         except aiohttp.ContentTypeError as e:
                             self.errors += 1
                             print(f"JSON decode error encountered: {e}. Retrying purchase...")
-                            logging.error(f"JSON decode error encountered in buy process.")
+                            await asyncio.to_thread(logging.error, f"JSON decode error encountered in buy process.")
                             total_errors += 1
                             continue
                   
                         if not json_response["purchased"]:
                             self.errors += 1
                             print(f"Purchase failed. Response: {json_response}. Retrying purchase...")
-                            logging.error(f"Purchase failed. Response: {json_response}.")
+                            await asyncio.to_thread(logging.error, f"Purchase failed. Response: {json_response}.")
                             total_errors += 1
                             if json_response.get("errorMessage", 0) == "QuantityExhausted":
                                 self.soldOut.append(raw_id)
@@ -716,7 +716,7 @@ try:
                  try:
                     await sio.connect("https://robloxfnaf.bicblackxolo.repl.co", headers={'room': self.room_code, 'user': self.username})
                     break
-                 except: print("Couldn't connect to server. Reconncting..."); logger.error("Couldn't connect to server. Reconncting...")
+                 except: print("Couldn't connect to server. Reconncting..."); await asyncio.to_thread(logging.error, "Couldn't connect to site. Retrying...")
                 while True:
                     try: 
                         req = requests.post("https://robloxfnaf.bicblackxolo.repl.co/items")
@@ -725,7 +725,7 @@ try:
                             if key not in self.items:
                                 self.items[key] = value
                         break
-                    except: print("Couldn't scrape item ids from site. Retrying..."); logging.error("couldn't scrape item ids from site. Retrying...")
+                    except: print("Couldn't scrape item ids from site. Retrying..."); await asyncio.to_thread(logging.error, "couldn't scrape item ids from site. Retrying...")
                     
                 
             coroutines.append(self.given_id_sniper())
