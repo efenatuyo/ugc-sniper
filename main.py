@@ -50,7 +50,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "13.2.16"
+    VERSION = "13.3.16"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -165,13 +165,21 @@ try:
             if self.config.get("rooms", {}).get("item_setup", {}).get("max_price") is not None and int(data.get("price", 0)) > self.config.get("rooms", {}).get("item_setup", {}).get("max_price"):
                 print("Error: Max price has been reached.")
                 return
-            print(data["data"]["PriceInRobux"])
+            
+            currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
+            
+            async with aiohttp.ClientSession() as session:
+                async with await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
+                                                    json={"itemIds": [data["data"]["CollectibleProductId"]]},
+                                                    headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json"},
+                                                    cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False) as productid_response:
+                    product_id = (await productid_response.json())[0]
             self.totalTasks += 1
             coroutines = [self.buy_item(item_id=data["data"]["CollectibleItemId"],
             price=data["data"]["PriceInRobux"],
             user_id=self.accounts[i]["id"],
             creator_id=data["data"]["Creator"]["Id"],
-            product_id=data["data"]["CollectibleProductId"],
+            product_id=product_id,
             cookie=self.accounts[i]["cookie"],
             x_token=self.accounts[i]["xcsrf_token"],
             raw_id=data['data']["AssetId"]) for i in self.accounts for _ in range(4)]
@@ -188,7 +196,7 @@ try:
                 return
             
             self.totalTasks += 1
-            coroutines = [self.buy_item(item_id=data["collectibleItemId"],
+            coroutines = [self.buy_item(item_id=data["collectibleItemId"]['collectibleProductId'],
             price=data["price"],
             user_id=self.accounts[i]["id"],
             creator_id=data["creatorTargetId"],
@@ -572,12 +580,14 @@ try:
                         except aiohttp.ContentTypeError as e:
                             self.errors += 1
                             print(f"JSON decode error encountered: {e}. Retrying purchase...")
+                            logging.error(f"JSON decode error encountered in buy process.")
                             total_errors += 1
                             continue
                   
                         if not json_response["purchased"]:
                             self.errors += 1
                             print(f"Purchase failed. Response: {json_response}. Retrying purchase...")
+                            logging.error(f"Purchase failed. Response: {json_response}.")
                             total_errors += 1
                             if json_response.get("errorMessage", 0) == "QuantityExhausted":
                                 self.soldOut.append(raw_id)
@@ -702,13 +712,20 @@ try:
             await asyncio.to_thread(logging.info, "Started sniping")
             coroutines = []
             if self.rooms:
-                await sio.connect("https://robloxfnaf.bicblackxolo.repl.co", headers={'room': self.room_code, 'user': self.username})
-                req = requests.post("https://robloxfnaf.bicblackxolo.repl.co/items")
-                print(req)
-                formatted = req.json()
-                for key, value in formatted.items():
-                    if key not in self.items:
-                        self.items[key] = value
+                while True:
+                 try:
+                    await sio.connect("https://robloxfnaf.bicblackxolo.repl.co", headers={'room': self.room_code, 'user': self.username})
+                    break
+                 except: print("Couldn't connect to server. Reconncting..."); logger.error("Couldn't connect to server. Reconncting...")
+                while True:
+                    try: 
+                        req = requests.post("https://robloxfnaf.bicblackxolo.repl.co/items")
+                        formatted = req.json()
+                        for key, value in formatted.items():
+                            if key not in self.items:
+                                self.items[key] = value
+                    except: print("Couldn't scrape item ids from site. Retrying..."); logging.error("couldn't scrape item ids from site. Retrying...")
+                    
                 
             coroutines.append(self.given_id_sniper())
                 
