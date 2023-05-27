@@ -724,6 +724,7 @@ try:
                         for key, value in formatted.items():
                             if key not in self.items:
                                 self.items[key] = value
+                        break
                     except: print("Couldn't scrape item ids from site. Retrying..."); logging.error("couldn't scrape item ids from site. Retrying...")
                     
                 
