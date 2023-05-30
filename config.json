@@ -5,10 +5,17 @@
     },
     "items": {
         "start": null,
-        "item_list": [
+        "item_on_release_snipe": [
             {
-                "id": "13394289606",
+                "id": "13583642806",
                 "max_price": null,
+                "max_buys": null
+            }
+        ],
+        "cheap_price_snipe": [
+            {
+                "id": "13032232281",
+                "max_price": 1,
                 "max_buys": null
             }
         ]
@@ -21,7 +28,7 @@
     "rooms": {
         "enabled": false,
         "username": "No Name",
-        "room_code": "",
+        "room_code": "xolo",
         "item_setup": {
             "max_price": null,
             "max_buys": null
@@ -44,6 +51,6 @@
     "discord": {
         "enabled": false,
         "prefix": "$",
-        "token": "MTEwMTE1Njk4NzY3ODUxMTIwNQ.GnweEB.edJomTn-S4QeXA0ea3TAgW-UjQ-dnP4HZjvgT4"
+        "token": ""
     }
 }
