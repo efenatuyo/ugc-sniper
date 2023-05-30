@@ -51,7 +51,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "14.0.1"
+    VERSION = "14.0.2"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -356,7 +356,7 @@ try:
             if not arg.isdigit():
                         return await ctx.reply(f":x: | Invalid given ID: {arg}")
                         
-            if not arg in self.items['item_on_release_snipe'] and self.items['cheap_price_snipe']:
+            if not arg in self.items['item_on_release_snipe'] and not arg in self.items['cheap_price_snipe']:
                 return await ctx.reply(":grey_question: | ID is not curently running.")
             
             if arg in self.items['item_on_release_snipe']:
@@ -391,7 +391,7 @@ try:
             if not id.isdigit():
                         return await ctx.reply(f":x: | Invalid given ID: {id}")
                         
-            if id in self.items['cheap_price_snipe'] or self.items['item_on_release_snipe']:
+            if id in self.items['cheap_price_snipe'] or id in self.items['item_on_release_snipe']:
                return await ctx.reply(":grey_question: | ID is currently running.")
             if type.lower() == "release":
                 self._config['items']['item_on_release_snipe'].append({
@@ -622,7 +622,7 @@ try:
                     self.totalTasks -= 1
                     return
                 
-                url = f"https://apis.roblox.com/marketplace-sales/v1/item/{item_id}/item"
+                url = f"https://apis.roblox.com/marketplace-sales/v1/item/{item_id}/purchase-item"
                 data["idempotencyKey"] = str(uuid.uuid4())
                 if method == "cheap":
                     data["collectibleItemInstanceId"] = collectibleItemInstanceId
