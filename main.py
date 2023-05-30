@@ -51,7 +51,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "14.0.0"
+    VERSION = "14.0.1"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -727,7 +727,7 @@ try:
                          creator = None
                          price = None
                          productid_data = None
-                         collectibleItemId = i["collectibleItemId"]
+                         collectibleItemId = i.get("collectibleItemId")
                          collectibleItemInstanceId = None
                          if str(i.get("id")) in self.items['item_on_release_snipe']:
                             if int(i.get("price", 0)) > self.items['item_on_release_snipe'][str(i['id'])]['max_price']:
@@ -839,7 +839,7 @@ try:
         while True:
             os.system(self.clear)
             self._print_stats()
-            await asyncio.sleep(self.themeWaitTime)
+            await asyncio.sleep(self.themeWaitTime * 500)
             
  sniper = Sniper()
 except Exception as e:
