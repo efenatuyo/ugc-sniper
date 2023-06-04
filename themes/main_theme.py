@@ -34,8 +34,7 @@ def _print_stats(self) -> None:
     output_lines.append(Style.BRIGHT + f"                           [ Total price checks: {Fore.YELLOW}{Style.BRIGHT}{self.checks}{Fore.WHITE}{Style.BRIGHT} ]")
     output_lines.append("")
     if self.rooms:
-        output_lines.append(Style.BRIGHT + f"                           [ Room Users: {Fore.GREEN}{Style.BRIGHT}{len(self.users)}{Fore.WHITE}{Style.BRIGHT} ]")
-        output_lines.append(Style.BRIGHT + f"                           [ Room Code: {Fore.GREEN}{Style.BRIGHT}{self.room_code}{Fore.WHITE}{Style.BRIGHT} ]")
+        output_lines.append(Style.BRIGHT + f"                           [ Connected Users: {Fore.GREEN}{Style.BRIGHT}{self.users}{Fore.WHITE}{Style.BRIGHT} ]")
         output_lines.append("")
     output_lines.append(Style.BRIGHT + f"                           [ Current Task: {Fore.GREEN}{Style.BRIGHT}{self.task}{Fore.WHITE}{Style.BRIGHT} ]")
 
