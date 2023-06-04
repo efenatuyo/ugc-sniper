@@ -7,17 +7,12 @@
         "start": null,
         "item_on_release_snipe": [
             {
-                "id": "13583642806",
+                "id": "13621949268",
                 "max_price": null,
                 "max_buys": null
             }
         ],
         "cheap_price_snipe": [
-            {
-                "id": "13032232281",
-                "max_price": 1,
-                "max_buys": null
-            }
         ]
     },
     "accounts": [
@@ -27,8 +22,6 @@
     ],
     "rooms": {
         "enabled": false,
-        "username": "No Name",
-        "room_code": "xolo",
         "item_setup": {
             "max_price": null,
             "max_buys": null

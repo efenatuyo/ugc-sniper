@@ -51,7 +51,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "14.0.2"
+    VERSION = "14.1.2"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -125,7 +125,7 @@ try:
         
         self.items = self.load_item_list
         
-        self.users = []
+        self.users = 0
         
         self.soldOut = []
         
@@ -151,13 +151,9 @@ try:
             print("Disconnected from server.")
 
         async def user_disconnected(data, self):
-            if data.get("room_code", "kekw") != self.config.get("rooms", {}).get("room_code"): return
-            print(f"{data['user']} has left the room")
-            self.users.delete(data['user'])
+            self.users = int(data["users"])
             
         async def new_roblox_item(self, data):
-            if data.get("room_code", "kekw") != self.config.get("rooms", {}).get("room_code"): return
-            
             if self.totalTasks >= 10: return
             required_args = ["CollectibleItemId", "PriceInRobux", "Creator", "CollectibleProductId", "AssetId"]
             if not all(arg in data['data'] for arg in required_args):
@@ -188,7 +184,6 @@ try:
             await asyncio.gather(*coroutines)
             
         async def new_item(self, data):
-            if data.get("room_code", "kekw") != self.config.get("rooms", {}).get("room_code"): return
             required_args = ["collectibleItemId", "price", "creatorTargetId", "collectibleProductId", "id"]
             if not all(arg in data for arg in required_args):
                 return
@@ -232,11 +227,10 @@ try:
                     await asyncio.gather(*coroutines)
     
         async def user_joined(self, data):
-            if data.get("room_code", "kekw") != self.config.get("rooms", {}).get("room_code"): return
-            print(f"{data['user']} has joined your room")
-            self.users.append(data['user'])
+            self.users = int(data["users"])
             
         sio.on("new_item")(partial(new_item, self))
+        sio.on("user_disconnected")(partial(user_disconnected, self))
         sio.on("user_joined")(partial(user_joined, self))
         sio.on("new_roblox_item")(partial(new_roblox_item, self))
         sio.on("new_auto_search_items")(partial(new_auto_search_items, self))
@@ -729,7 +723,9 @@ try:
                          productid_data = None
                          collectibleItemId = i.get("collectibleItemId")
                          collectibleItemInstanceId = None
+                         location = None
                          if str(i.get("id")) in self.items['item_on_release_snipe']:
+                            location = "item_on_release_snipe"
                             if int(i.get("price", 0)) > self.items['item_on_release_snipe'][str(i['id'])]['max_price']:
                                 del self.items['item_on_release_snipe'][str(i['id'])]
                                 continue
@@ -737,10 +733,14 @@ try:
                                 if i.get('unitsAvailableForConsumption', 1) == 0:
                                     del self.items['item_on_release_snipe'][str(i['id'])]
                                 continue
+                            if int(i.get("quantityLimitPerUser", 0)) != 0:
+                                self.items['item_on_release_snipe'][str(i['id'])]["max_buys"] = int(i.get("quantityLimitPerUser", 0))
+                                
                             creator = i['creatorTargetId']
                             price = i['price']
                             
                          elif str(i.get("id")) in self.items['cheap_price_snipe']:
+                            location = 'cheap_price_snipe'
                             if not i.get("hasResellers") or i.get("lowestResalePrice") >= self.items['cheap_price_snipe'][str(i.get("id"))]['max_price']:
                                 continue
                             else:
@@ -752,7 +752,26 @@ try:
                                     creator = rps["seller"]["sellerId"]
                                     price = i['lowestResalePrice']
                                     collectibleItemInstanceId = rps["collectibleItemInstanceId"]
-                                           
+                         if i["saleLocationType"] == 'ExperiencesDevApiOnly':
+                            # SINCE ROBLOX DOES NOT HAVE IT CURRENTLY ENABLED THIS WON'T WORK YET / beta
+                            del self.items[location][str(i['id'])]
+                            continue
+                        
+                            # if roblox decides to turn it online we will scrape the game id
+                            async with await session.get(f"https://economy.roblox.com/v2/assets/{i['id']}/details", cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False) as first:
+                                first.raise_for_status()
+                                assert first.status == 200, "Response declined"
+                                if not ((first.json())["SaleLocation"] is None or len((first.json())["SaleLocation"].get("UniverseIds", [])) == 0):
+                                    universe_ids = (first.json())['SaleLocation'].get('UniverseIds', [])
+                                    async with await session.get(f"https://games.roblox.com/v1/games?universeIds={','.join(str(id) for id in universe_ids)}", cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False) as second:
+                                        second.raise_for_status()
+                                        assert second.status == 200, "Response declined"
+                                        game_list = []
+                                        for current in (second.json())["data"]:
+                                            game_list.append(current['rootPlaceId'])
+                                        
+                                        # we now have a list of games linked to it.
+                                        
                          if not productid_data:
                             await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
                             async with await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
@@ -810,7 +829,7 @@ try:
             if self.rooms:
                 while True:
                  try:
-                    await sio.connect("https://robloxfnaf.bicblackxolo.repl.co", headers={'room': self.room_code, 'user': self.username})
+                    await sio.connect("https://robloxfnaf.bicblackxolo.repl.co")
                     break
                  except: print("Couldn't connect to server. Reconncting..."); await asyncio.to_thread(logging.error, "Couldn't connect to site. Retrying...")
                 while True:
