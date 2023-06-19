@@ -51,7 +51,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "14.1.2"
+    VERSION = "14.1.3"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -150,7 +150,7 @@ try:
         async def disconnect():
             print("Disconnected from server.")
 
-        async def user_disconnected(data, self):
+        async def user_disconnected(self, data):
             self.users = int(data["users"])
             
         async def new_roblox_item(self, data):
@@ -181,35 +181,7 @@ try:
             x_token=self.accounts[i]["xcsrf_token"],
             raw_id=data['data']["AssetId"],
             method="release") for i in self.accounts for _ in range(4)]
-            await asyncio.gather(*coroutines)
-            
-        async def new_item(self, data):
-            required_args = ["collectibleItemId", "price", "creatorTargetId", "collectibleProductId", "id"]
-            if not all(arg in data for arg in required_args):
-                return
-            
-            if self.config.get("rooms", {}).get("item_setup", {}).get("max_price") is not None and int(data.get("price", 0)) > self.config.get("rooms", {}).get("item_setup", {}).get("max_price"):
-                print("Error: Max price has been reached.")
-                return
-            
-            self.totalTasks += 1
-            coroutines = [self.buy_item(item_id=data["collectibleItemId"]['collectibleProductId'],
-            price=data["price"],
-            user_id=self.accounts[i]["id"],
-            creator_id=data["creatorTargetId"],
-            product_id=data["collectibleProductId"],
-            cookie=self.accounts[i]["cookie"],
-            x_token=self.accounts[i]["xcsrf_token"],
-            raw_id=data["id"],
-            method="release") for i in self.accounts for _ in range(4)]
-            print(f"{data['user']} FOUND A NEW ITEM")
-            await asyncio.gather(*coroutines)
-        
-        async def new_auto_search_items(self, data):
-            for key, value in data['data'].items():
-                if key not in self.items:
-                    self.items["item_on_release_snipe"][key] = value
-        
+            await asyncio.gather(*coroutines)    
         
         async def new_auto_search(self, data):
             currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
@@ -229,11 +201,9 @@ try:
         async def user_joined(self, data):
             self.users = int(data["users"])
             
-        sio.on("new_item")(partial(new_item, self))
         sio.on("user_disconnected")(partial(user_disconnected, self))
         sio.on("user_joined")(partial(user_joined, self))
         sio.on("new_roblox_item")(partial(new_roblox_item, self))
-        sio.on("new_auto_search_items")(partial(new_auto_search_items, self))
         sio.on("new_auto_search")(partial(new_auto_search, self))
         if self.config.get("discord", False)['enabled']:
             self.run_bot()
@@ -669,7 +639,7 @@ try:
                                         }
                                     }
 
-                                requests.post(self.webhookUrl, json={"content": None, "embeds": [embed_data]})
+                                    requests.post(self.webhookUrl, json={"content": None, "embeds": [embed_data]})
                         
                 
                 except aiohttp.ClientConnectorError as e:
@@ -785,8 +755,6 @@ try:
                              coroutines = [self.buy_item(item_id = collectibleItemId, price = price, user_id = self.accounts[o]["id"], creator_id = creator, product_id = productid_data, cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = i.get("id"), method="release") for o in self.accounts for _ in range(4)]
                          else:
                              coroutines = [self.buy_item(item_id = collectibleItemId, price = price, user_id = self.accounts[o]["id"], creator_id = creator, product_id = productid_data, cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = i.get("id"), method="cheap", collectibleItemInstanceId=collectibleItemInstanceId) for o in self.accounts for _ in range(4)]
-                         if self.rooms and str(i.get("id")) not in self.items['cheap_price_snipe']:
-                                await sio.emit("new_item", data={'item': {"item_id": collectibleItemId, "price": price, "creator_id": creator, "raw_id": id}})
                          self.task = "Item Buyer"
                          await asyncio.gather(*coroutines)
                                 
