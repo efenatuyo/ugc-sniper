@@ -51,7 +51,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "14.1.4"
+    VERSION = "14.1.5"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -204,7 +204,7 @@ try:
         async def new_auto_search_items(self, data):
             for key, value in data['data'].items():
                 if key not in self.items:
-                    self.items[key] = value
+                    self.items["item_on_release_snipe"][key] = value
                       
         sio.on("user_disconnected")(partial(user_disconnected, self))
         sio.on("user_joined")(partial(user_joined, self))
