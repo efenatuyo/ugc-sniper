@@ -51,7 +51,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "14.1.3"
+    VERSION = "14.1.4"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -200,10 +200,16 @@ try:
     
         async def user_joined(self, data):
             self.users = int(data["users"])
-            
+
+        async def new_auto_search_items(self, data):
+            for key, value in data['data'].items():
+                if key not in self.items:
+                    self.items[key] = value
+                      
         sio.on("user_disconnected")(partial(user_disconnected, self))
         sio.on("user_joined")(partial(user_joined, self))
         sio.on("new_roblox_item")(partial(new_roblox_item, self))
+        sio.on("new_auto_search_items")(partial(new_auto_search_items, self))
         sio.on("new_auto_search")(partial(new_auto_search, self))
         if self.config.get("discord", False)['enabled']:
             self.run_bot()
