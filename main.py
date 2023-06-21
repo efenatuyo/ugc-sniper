@@ -51,7 +51,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "14.1.5"
+    VERSION = "14.1.6"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -124,6 +124,7 @@ try:
         self.totalTasks = 0
         
         self.items = self.load_item_list
+        self.itemsByAuto = []
         
         self.users = 0
         
@@ -200,16 +201,16 @@ try:
     
         async def user_joined(self, data):
             self.users = int(data["users"])
-
+        
         async def new_auto_search_items(self, data):
             for key, value in data['data'].items():
-                if key not in self.items:
+                if key not in self.items and not key in self.itemsByAuto:
                     self.items["item_on_release_snipe"][key] = value
+                    self.itemsByAuto.append(value)
                       
+        sio.on("new_auto_search_items")(partial(new_auto_search_items, self))
         sio.on("user_disconnected")(partial(user_disconnected, self))
         sio.on("user_joined")(partial(user_joined, self))
-        sio.on("new_roblox_item")(partial(new_roblox_item, self))
-        sio.on("new_auto_search_items")(partial(new_auto_search_items, self))
         sio.on("new_auto_search")(partial(new_auto_search, self))
         if self.config.get("discord", False)['enabled']:
             self.run_bot()
@@ -472,9 +473,10 @@ try:
     def _load_cookies(self) -> dict:
             lines = self.config['accounts']
             my_dict = {}
-            for i, line in enumerate(lines):
-                my_dict[str(i+1)] = {}
-                my_dict[str(i+1)] = {"cookie": line['cookie']}
+            total = 0
+            for i in lines:
+                my_dict[str(total+1)] = {}
+                my_dict[str(total+1)] = {"cookie": i}
             return my_dict
         
     def _load_items(self) -> list:
@@ -758,9 +760,9 @@ try:
                                 productid_data = json.loads(await productid_response.text())[0]['collectibleProductId']
                          self.totalTasks += 1
                          if str(i.get("id")) not in self.items['cheap_price_snipe']:
-                             coroutines = [self.buy_item(item_id = collectibleItemId, price = price, user_id = self.accounts[o]["id"], creator_id = creator, product_id = productid_data, cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = i.get("id"), method="release") for o in self.accounts for _ in range(4)]
+                             coroutines = [self.buy_item(item_id=collectibleItemId, price=price, user_id=self.accounts[o]['id'], creator_id=creator, product_id=productid_data, cookie=self.accounts[o]['cookie'], x_token=self.accounts[o]['xcsrf_token'], raw_id=i.get('id'), method='release') for o in (range(1, len(self.accounts)) if len(self.accounts) > 1 else range(len(self.accounts))) for _ in range(4)]  
                          else:
-                             coroutines = [self.buy_item(item_id = collectibleItemId, price = price, user_id = self.accounts[o]["id"], creator_id = creator, product_id = productid_data, cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = i.get("id"), method="cheap", collectibleItemInstanceId=collectibleItemInstanceId) for o in self.accounts for _ in range(4)]
+                             coroutines = [self.buy_item(item_id = collectibleItemId, price = price, user_id = self.accounts[o]["id"], creator_id = creator, product_id = productid_data, cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = i.get("id"), method="cheap", collectibleItemInstanceId=collectibleItemInstanceId) for o in (range(1, len(self.accounts)) if len(self.accounts) > 1 else range(len(self.accounts))) for _ in range(4)]
                          self.task = "Item Buyer"
                          await asyncio.gather(*coroutines)
                                 
