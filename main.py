@@ -51,7 +51,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "14.1.6"
+    VERSION = "14.1.7"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -689,9 +689,8 @@ try:
                     currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
                     async with session.post("https://catalog.roblox.com/v1/catalog/items/details",
                                            json={"items": [{"itemType": "Asset", "id": id} for id in items]},
-                                           headers={"x-csrf-token": currentAccount['xcsrf_token'], 'Accept': "application/json"},
+                                           headers={"x-csrf-token": currentAccount['xcsrf_token']},
                                            cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False, proxy=proxy, timeout=self.timeout, proxy_auth = self.proxy_auth) as response:
-                        response.raise_for_status()
                         assert response.status == 200, "Response declined"
                         response_text = await response.text()
                         json_response = json.loads(response_text)['data']
@@ -760,9 +759,9 @@ try:
                                 productid_data = json.loads(await productid_response.text())[0]['collectibleProductId']
                          self.totalTasks += 1
                          if str(i.get("id")) not in self.items['cheap_price_snipe']:
-                             coroutines = [self.buy_item(item_id=collectibleItemId, price=price, user_id=self.accounts[o]['id'], creator_id=creator, product_id=productid_data, cookie=self.accounts[o]['cookie'], x_token=self.accounts[o]['xcsrf_token'], raw_id=i.get('id'), method='release') for o in (range(1, len(self.accounts)) if len(self.accounts) > 1 else range(len(self.accounts))) for _ in range(4)]  
+                             coroutines = [self.buy_item(item_id=collectibleItemId, price=price, user_id=self.accounts[o]['id'], creator_id=creator, product_id=productid_data, cookie=self.accounts[o]['cookie'], x_token=self.accounts[o]['xcsrf_token'], raw_id=i.get('id'), method='release') for o in (range(1, len(self.accounts)) if len(self.accounts) > 1 else self.accounts) for _ in range(4)]  
                          else:
-                             coroutines = [self.buy_item(item_id = collectibleItemId, price = price, user_id = self.accounts[o]["id"], creator_id = creator, product_id = productid_data, cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = i.get("id"), method="cheap", collectibleItemInstanceId=collectibleItemInstanceId) for o in (range(1, len(self.accounts)) if len(self.accounts) > 1 else range(len(self.accounts))) for _ in range(4)]
+                             coroutines = [self.buy_item(item_id = collectibleItemId, price = price, user_id = self.accounts[o]["id"], creator_id = creator, product_id = productid_data, cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = i.get("id"), method="cheap", collectibleItemInstanceId=collectibleItemInstanceId) for o in (range(1, len(self.accounts)) if len(self.accounts) > 1 else self.accounts) for _ in range(4)]
                          self.task = "Item Buyer"
                          await asyncio.gather(*coroutines)
                                 
