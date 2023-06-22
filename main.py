@@ -20,7 +20,6 @@ try:
   from typing import Dict
   from itertools import islice, cycle
   import themes
-  import re
  except ModuleNotFoundError as e:
     print("Modules not installed properly installing now", e)
     os.system("pip install requests")
@@ -51,7 +50,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "14.1.7"
+    VERSION = "14.1.8"
     
     class bucket:
         def __init__(self, max_tokens: int, refill_interval: float):
@@ -204,9 +203,9 @@ try:
         
         async def new_auto_search_items(self, data):
             for key, value in data['data'].items():
-                if key not in self.items and not key in self.itemsByAuto:
+                if int(key) not in self.items['cheap_price_snipe'] and int(key) not in self.items['item_on_release_snipe'] and str(key) not in self.items['cheap_price_snipe'] and str(key) not in self.items['item_on_release_snipe'] and key not in self.items['cheap_price_snipe'] and key not in self.itemsByAuto:
                     self.items["item_on_release_snipe"][key] = value
-                    self.itemsByAuto.append(value)
+                    self.itemsByAuto.append(key)
                       
         sio.on("new_auto_search_items")(partial(new_auto_search_items, self))
         sio.on("user_disconnected")(partial(user_disconnected, self))
@@ -534,7 +533,7 @@ try:
       return False
      
     async def buy_item(self, item_id: int, price: int, user_id: int, creator_id: int,
-         product_id: int, cookie: str, x_token: str, raw_id: int, bypass=False, method=None, collectibleItemInstanceId=None) -> None:
+         product_id: int, cookie: str, x_token: str, raw_id: str, bypass=False, method=None, collectibleItemInstanceId=None) -> None:
         
          """
             Purchase a limited item on Roblox.
@@ -556,9 +555,10 @@ try:
                "expectedPurchaserType": "User",
                "expectedSellerId": creator_id,
                "expectedSellerType": "User",
-               "idempotencyKey": "random uuid4 string that will be your key or smthn",
+               "idempotencyKey": str(uuid.uuid4()),
                "collectibleProductId": product_id
          }
+         raw_id = str(raw_id)
          total_errors = 0
          if raw_id in self.soldOut:
              self.totalTasks -= 1 
@@ -595,7 +595,6 @@ try:
                     return
                 
                 url = f"https://apis.roblox.com/marketplace-sales/v1/item/{item_id}/purchase-item"
-                data["idempotencyKey"] = str(uuid.uuid4())
                 if method == "cheap":
                     data["collectibleItemInstanceId"] = collectibleItemInstanceId
                     url = f"https://apis.roblox.com/marketplace-sales/v1/item/{item_id}/purchase-resale"
@@ -625,6 +624,22 @@ try:
                                 if json_response.get("errorMessage", 0) == "QuantityExhausted":
                                     self.soldOut.append(raw_id)
                                     self.totalTasks -= 1
+                                    if method == "cheap":
+                                        if raw_id in self.items['cheap_price_snipe']:
+                                            del self.items['cheap_price_snipe'][raw_id]
+                                    elif method == "release":
+                                        if raw_id in self.items['item_on_release_snipe']:
+                                            del self.items['item_on_release_snipe'][raw_id]
+                                    return
+                                elif json_response.get("errorMessage", 0) == "InsufficientBalance":
+                                    self.soldOut.append(raw_id)
+                                    self.totalTasks -= 1
+                                    if method == "cheap":
+                                        if raw_id in self.items['cheap_price_snipe']:
+                                            del self.items['cheap_price_snipe'][raw_id]
+                                    elif method == "release":
+                                        if raw_id in self.items['item_on_release_snipe']:
+                                            del self.items['item_on_release_snipe'][raw_id]
                                     return
                             else:
                                 if method == "release":
@@ -759,9 +774,9 @@ try:
                                 productid_data = json.loads(await productid_response.text())[0]['collectibleProductId']
                          self.totalTasks += 1
                          if str(i.get("id")) not in self.items['cheap_price_snipe']:
-                             coroutines = [self.buy_item(item_id=collectibleItemId, price=price, user_id=self.accounts[o]['id'], creator_id=creator, product_id=productid_data, cookie=self.accounts[o]['cookie'], x_token=self.accounts[o]['xcsrf_token'], raw_id=i.get('id'), method='release') for o in (range(1, len(self.accounts)) if len(self.accounts) > 1 else self.accounts) for _ in range(4)]  
+                             coroutines = [self.buy_item(item_id=collectibleItemId, price=price, user_id=self.accounts[o]['id'], creator_id=creator, product_id=productid_data, cookie=self.accounts[o]['cookie'], x_token=self.accounts[o]['xcsrf_token'], raw_id=i.get('id'), method='release') for o in (range(1, len(self.accounts)) if len(self.accounts) > 1 else self.accounts)]  
                          else:
-                             coroutines = [self.buy_item(item_id = collectibleItemId, price = price, user_id = self.accounts[o]["id"], creator_id = creator, product_id = productid_data, cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = i.get("id"), method="cheap", collectibleItemInstanceId=collectibleItemInstanceId) for o in (range(1, len(self.accounts)) if len(self.accounts) > 1 else self.accounts) for _ in range(4)]
+                             coroutines = [self.buy_item(item_id = collectibleItemId, price = price, user_id = self.accounts[o]["id"], creator_id = creator, product_id = productid_data, cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = i.get("id"), method="cheap", collectibleItemInstanceId=collectibleItemInstanceId) for o in (range(1, len(self.accounts)) if len(self.accounts) > 1 else self.accounts)]
                          self.task = "Item Buyer"
                          await asyncio.gather(*coroutines)
                                 
