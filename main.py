@@ -50,7 +50,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "14.2.8"
+    VERSION = "14.2.9"
                    
     class ProxyHandler:
        class TokenBucket:
@@ -744,12 +744,12 @@ try:
             if self.rooms:
                 while True:
                  try:
-                    await sio.connect("https://robloxfnaf.bicblackxolo.repl.co")
+                    await sio.connect("https://webserver--xolobang.repl.co/")
                     break
                  except: print("Couldn't connect to server. Reconncting..."); await asyncio.to_thread(logging.error, "Couldn't connect to site. Retrying...")
                 while True:
                     try: 
-                        req = requests.post("https://robloxfnaf.bicblackxolo.repl.co/items")
+                        req = requests.post("https://webserver--xolobang.repl.co/items")
                         formatted = req.json()
                         for key, value in formatted.items():
                             if key not in self.items:
