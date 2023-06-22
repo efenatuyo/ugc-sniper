@@ -18,7 +18,7 @@
         "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|"
     ],
     "rooms": {
-        "enabled": false,
+        "enabled": true,
         "item_setup": {
             "max_price": null,
             "max_buys": null
