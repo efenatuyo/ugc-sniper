@@ -50,30 +50,7 @@ try:
  
  ################################################################################################################################      
  class Sniper:
-    VERSION = "14.1.8"
-    
-    class bucket:
-        def __init__(self, max_tokens: int, refill_interval: float):
-            self.max_tokens = max_tokens
-            self.tokens = max_tokens
-            self.refill_interval = refill_interval
-            self.last_refill_time = asyncio.get_event_loop().time()
-
-        async def take(self, tokens: int, proxy=False):
-            while True:
-                if proxy:
-                    return True
-                
-                elapsed = asyncio.get_event_loop().time() - self.last_refill_time
-                if elapsed > self.refill_interval:
-                   self.tokens = self.max_tokens
-                   self.last_refill_time = asyncio.get_event_loop().time()
-
-                if self.tokens >= tokens:
-                   self.tokens -= tokens
-                   return
-                else:
-                   await asyncio.sleep(0.01)
+    VERSION = "14.2.8"
                    
     class ProxyHandler:
        class TokenBucket:
@@ -136,7 +113,6 @@ try:
         self.check_version()
         
         self.ratelmit = None
-        asyncio.run(self.setup_ratelimit())
         
         self._task = None
         
@@ -151,52 +127,7 @@ try:
             print("Disconnected from server.")
 
         async def user_disconnected(self, data):
-            self.users = int(data["users"])
-            
-        async def new_roblox_item(self, data):
-            if self.totalTasks >= 10: return
-            required_args = ["CollectibleItemId", "PriceInRobux", "Creator", "CollectibleProductId", "AssetId"]
-            if not all(arg in data['data'] for arg in required_args):
-                return
-            
-            if self.config.get("rooms", {}).get("item_setup", {}).get("max_price") is not None and int(data.get("price", 0)) > self.config.get("rooms", {}).get("item_setup", {}).get("max_price"):
-                print("Error: Max price has been reached.")
-                return
-            
-            currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
-            
-            async with aiohttp.ClientSession() as session:
-                async with await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
-                                                    json={"itemIds": [data["data"]["CollectibleProductId"]]},
-                                                    headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json"},
-                                                    cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False) as productid_response:
-                    product_id = (await productid_response.json())[0]
-            self.totalTasks += 1
-            coroutines = [self.buy_item(item_id=data["data"]["CollectibleItemId"],
-            price=data["data"]["PriceInRobux"],
-            user_id=self.accounts[i]["id"],
-            creator_id=data["data"]["Creator"]["Id"],
-            product_id=product_id,
-            cookie=self.accounts[i]["cookie"],
-            x_token=self.accounts[i]["xcsrf_token"],
-            raw_id=data['data']["AssetId"],
-            method="release") for i in self.accounts for _ in range(4)]
-            await asyncio.gather(*coroutines)    
-        
-        async def new_auto_search(self, data):
-            currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
-            i = data['data']
-            async with aiohttp.ClientSession() as session:
-                async with await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
-                                                    json={"itemIds": [i["collectibleItemId"]]},
-                                                    headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json"},
-                                                    cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False) as productid_response:
-                    productid_response.raise_for_status()
-                    productid_data = (await productid_response.json())[0]
-                    self.totalTasks += 1
-                    coroutines = [self.buy_item(item_id = i["collectibleItemId"], price = i['price'], user_id = self.accounts[o]["id"], creator_id = i['creatorTargetId'], product_id = productid_data['collectibleProductId'], cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = id, bypass=True, method="release") for o in self.accounts for _ in range(4)]
-                    self.task = "Item Buyer"
-                    await asyncio.gather(*coroutines)
+            self.users = int(data["users"])  
     
         async def user_joined(self, data):
             self.users = int(data["users"])
@@ -210,7 +141,6 @@ try:
         sio.on("new_auto_search_items")(partial(new_auto_search_items, self))
         sio.on("user_disconnected")(partial(user_disconnected, self))
         sio.on("user_joined")(partial(user_joined, self))
-        sio.on("new_auto_search")(partial(new_auto_search, self))
         if self.config.get("discord", False)['enabled']:
             self.run_bot()
         else:
@@ -223,9 +153,6 @@ try:
             response = asyncio.run(self.check_all_proxies(lines))
             self.proxies = response
             self.proxy_handler = self.ProxyHandler(self.proxies, 60)
-    
-    async def setup_ratelimit(self):
-         self.ratelimit = self.bucket(max_tokens=60, refill_interval=60)
          
     @property
     def proxy_list(self):
@@ -601,7 +528,7 @@ try:
                 try:
                         async with client.post(url,
                                 json=data,
-                                headers={"x-csrf-token": x_token},
+                                headers={"x-csrf-token": x_token, 'Accept-Encoding': 'gzip'},
                                 cookies={".ROBLOSECURITY": cookie}, ssl = False) as response:
                             if response.status == 429:
                                 print("Ratelimit encountered. Retrying purchase in 0.5 seconds...")
@@ -673,42 +600,38 @@ try:
         
     async def search(self) -> None:
      async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=None), timeout=aiohttp.ClientTimeout(total=None)) as session:
-      start_date  = self.config["items"]['start']
+      self.task = "Item Scraper & Searcher"
+      cheap_price_snipe_items = self.items['cheap_price_snipe'].copy()
+      item_on_release_snipe_items = self.items['item_on_release_snipe'].copy()
       while True:
         try:
-                    cycler = cycle(list(self.items['cheap_price_snipe'].keys()) + list(self.items['item_on_release_snipe'].keys()))
+                    cycler = cycle(list(cheap_price_snipe_items.keys()) + list(item_on_release_snipe_items.keys()))
                     if self.config['proxy']['enabled'] and len(self.proxies) > 0:
                         proxy = f"http://{await self.proxy_handler.newprox()}"
                     else:
                         proxy = None
-                    try:
-                      start_time = datetime.datetime.strptime(str(start_date), "%Y-%m-%d %H:%M:%S")
-                      if datetime.datetime.now() >= start_time:
-                         pass
-                      else:
-                         continue
-                    except Exception as e:
-                         pass
-                    self.task = "Item Scraper & Searcher"
                     t0 = asyncio.get_event_loop().time()
-                    for id in list(self.items['cheap_price_snipe'].keys()) + list(self.items['item_on_release_snipe'].keys()):
+                    for id in list(cheap_price_snipe_items.keys()) + list(item_on_release_snipe_items.keys()):
                         if not id.isdigit():
-                           if id in self.items['cheap_price_snipe']: del self.item["cheap_price_snipe"][id]
-                           elif id in self.items['item_on_release_snipe']: del self.item["item_on_release_snipe"][id]
+                           if id in cheap_price_snipe_items: del cheap_price_snipe_items[id]; del self.item["cheap_price_snipe"][id]
+                           elif id in item_on_release_snipe_items: del item_on_release_snipe_items[id]; del self.item["item_on_release_snipe"][id]
                            
-                    await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
                     combined_dict = {}
-                    combined_dict.update(self.items['cheap_price_snipe'])
-                    combined_dict.update(self.items['item_on_release_snipe'])
+                    combined_dict |= cheap_price_snipe_items
+                    combined_dict |= item_on_release_snipe_items
                     items = {k: combined_dict[k] for k in islice(cycler, 120)}
+                    if len(cheap_price_snipe_items) == 0:
+                        cheap_price_snipe_items = self.items['cheap_price_snipe'].copy()
+                    if len(item_on_release_snipe_items) == 0:
+                        item_on_release_snipe_items = self.items['item_on_release_snipe'].copy()
+                        
                     currentAccount = self.accounts[str(random.randint(1, len(self.accounts)))]
                     async with session.post("https://catalog.roblox.com/v1/catalog/items/details",
                                            json={"items": [{"itemType": "Asset", "id": id} for id in items]},
-                                           headers={"x-csrf-token": currentAccount['xcsrf_token']},
+                                           headers={"x-csrf-token": currentAccount['xcsrf_token'], 'Accept-Encoding': 'gzip'},
                                            cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False, proxy=proxy, timeout=self.timeout, proxy_auth = self.proxy_auth) as response:
-                        assert response.status == 200, "Response declined"
-                        response_text = await response.text()
-                        json_response = json.loads(response_text)['data']
+                        response.raise_for_status()
+                        json_response = (await response.json())['data']
                         for i in json_response:
                          creator = None
                          price = None
@@ -716,28 +639,30 @@ try:
                          collectibleItemId = i.get("collectibleItemId")
                          collectibleItemInstanceId = None
                          location = None
-                         if str(i.get("id")) in self.items['item_on_release_snipe']:
+                         item_id = str(i.get("id"))
+                         cheap_price_snipe_item = cheap_price_snipe_items.get(item_id)
+                         if not cheap_price_snipe_item:
                             location = "item_on_release_snipe"
-                            if int(i.get("price", 0)) > self.items['item_on_release_snipe'][str(i['id'])]['max_price']:
-                                del self.items['item_on_release_snipe'][str(i['id'])]
+                            if int(i.get("price", 0)) > item_on_release_snipe_items[item_id]['max_price']:
+                                del self.items['item_on_release_snipe'][item_id]
+                                del item_on_release_snipe_items[item_id] 
                                 continue
                             if not (i.get("priceStatus") != "Off Sale" and i.get('unitsAvailableForConsumption', 0) > 0):
                                 if i.get('unitsAvailableForConsumption', 1) == 0:
-                                    del self.items['item_on_release_snipe'][str(i['id'])]
+                                    del self.items['item_on_release_snipe'][item_id]; del item_on_release_snipe_items[item_id] 
                                 continue
                             if int(i.get("quantityLimitPerUser", 0)) != 0:
-                                self.items['item_on_release_snipe'][str(i['id'])]["max_buys"] = int(i.get("quantityLimitPerUser", 0))
+                                self.items['item_on_release_snipe'][item_id]["max_buys"] = int(i.get("quantityLimitPerUser", 0)); item_on_release_snipe_items[item_id]["max_buys"] = int(i.get("quantityLimitPerUser", 0))
                                 
                             creator = i['creatorTargetId']
                             price = i['price']
-                            
-                         elif str(i.get("id")) in self.items['cheap_price_snipe']:
+                         else:
                             location = 'cheap_price_snipe'
-                            if not i.get("hasResellers") or i.get("lowestResalePrice") >= self.items['cheap_price_snipe'][str(i.get("id"))]['max_price']:
+                            if not i.get("hasResellers") or i.get("lowestResalePrice") >= cheap_price_snipe_items[item_id]['max_price']:
                                 continue
                             else:
                                 async with await session.get(f"https://apis.roblox.com/marketplace-sales/v1/item/{i['collectibleItemId']}/resellers?limit=1",
-                                                                     headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json"},
+                                                                     headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json", 'Accept-Encoding': 'gzip'},
                                                                      cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False) as resell:
                                     rps = (await resell.json())["data"][0]
                                     productid_data = rps["collectibleProductId"]
@@ -752,12 +677,10 @@ try:
                             # if roblox decides to turn it online we will scrape the game id
                             async with await session.get(f"https://economy.roblox.com/v2/assets/{i['id']}/details", cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False) as first:
                                 first.raise_for_status()
-                                assert first.status == 200, "Response declined"
                                 if not ((first.json())["SaleLocation"] is None or len((first.json())["SaleLocation"].get("UniverseIds", [])) == 0):
                                     universe_ids = (first.json())['SaleLocation'].get('UniverseIds', [])
                                     async with await session.get(f"https://games.roblox.com/v1/games?universeIds={','.join(str(id) for id in universe_ids)}", cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False) as second:
                                         second.raise_for_status()
-                                        assert second.status == 200, "Response declined"
                                         game_list = []
                                         for current in (second.json())["data"]:
                                             game_list.append(current['rootPlaceId'])
@@ -765,20 +688,20 @@ try:
                                         # we now have a list of games linked to it.
                                         
                          if not productid_data:
-                            await self.ratelimit.take(1, proxy = True if self.proxies is not None and len(self.proxies) > 0 else False)
                             async with await session.post("https://apis.roblox.com/marketplace-items/v1/items/details",
                                                                      json={"itemIds": [collectibleItemId]},
-                                                                     headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json"},
+                                                                     headers={"x-csrf-token": currentAccount["xcsrf_token"], 'Accept': "application/json", 'Accept-Encoding': 'gzip'},
                                                                      cookies={".ROBLOSECURITY": currentAccount["cookie"]}, ssl=False) as productid_response:
                                 productid_response.raise_for_status()
-                                productid_data = json.loads(await productid_response.text())[0]['collectibleProductId']
+                                productid_data = (await productid_response.json())[0]['collectibleProductId']
                          self.totalTasks += 1
-                         if str(i.get("id")) not in self.items['cheap_price_snipe']:
+                         if item_id not in cheap_price_snipe_items:
                              coroutines = [self.buy_item(item_id=collectibleItemId, price=price, user_id=self.accounts[o]['id'], creator_id=creator, product_id=productid_data, cookie=self.accounts[o]['cookie'], x_token=self.accounts[o]['xcsrf_token'], raw_id=i.get('id'), method='release') for o in (range(1, len(self.accounts)) if len(self.accounts) > 1 else self.accounts)]  
                          else:
                              coroutines = [self.buy_item(item_id = collectibleItemId, price = price, user_id = self.accounts[o]["id"], creator_id = creator, product_id = productid_data, cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = i.get("id"), method="cheap", collectibleItemInstanceId=collectibleItemInstanceId) for o in (range(1, len(self.accounts)) if len(self.accounts) > 1 else self.accounts)]
                          self.task = "Item Buyer"
                          await asyncio.gather(*coroutines)
+                         self.task = "Item Scraper & Searcher"
                                 
                     t1 = asyncio.get_event_loop().time()
                     self.last_time = round(t1 - t0, 3)
@@ -804,6 +727,8 @@ try:
             return
         finally:
             self.checks += len(items)
+            cheap_price_snipe_items = self.items['cheap_price_snipe'].copy()
+            item_on_release_snipe_items = self.items['item_on_release_snipe'].copy()
             await asyncio.sleep(1)
             
                                
