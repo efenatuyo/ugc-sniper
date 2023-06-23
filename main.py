@@ -460,7 +460,7 @@ try:
       return False
      
     async def buy_item(self, item_id: int, price: int, user_id: int, creator_id: int,
-         product_id: int, cookie: str, x_token: str, raw_id: str, bypass=False, method=None, collectibleItemInstanceId=None, url="https://apis.roblox.com/marketplace-sales/v1/item/{item_id}/purchase-item") -> None:
+         product_id: int, cookie: str, x_token: str, raw_id: str, bypass=False, method=None, collectibleItemInstanceId=None, url=None) -> None:
         
          """
             Purchase a limited item on Roblox.
@@ -699,9 +699,9 @@ try:
                                 productid_data = (await productid_response.json())[0]['collectibleProductId']
                          self.totalTasks += 1
                          if item_id not in cheap_price_snipe_items:
-                             coroutines = [self.buy_item(item_id=collectibleItemId, price=price, user_id=self.accounts[o]['id'], creator_id=creator, product_id=productid_data, cookie=self.accounts[o]['cookie'], x_token=self.accounts[o]['xcsrf_token'], raw_id=i.get('id'), method='release', bypass=True) for o in (range(1, len(self.accounts)) if len(self.accounts) > 1 else self.accounts)]  
+                             coroutines = [self.buy_item(item_id=collectibleItemId, price=price, user_id=self.accounts[o]['id'], creator_id=creator, product_id=productid_data, cookie=self.accounts[o]['cookie'], x_token=self.accounts[o]['xcsrf_token'], raw_id=i.get('id'), method='release', bypass=True, url=f"https://apis.roblox.com/marketplace-sales/v1/item/{raw_id}/purchase-item") for o in (range(1, len(self.accounts)) if len(self.accounts) > 1 else self.accounts)]  
                          else:
-                             coroutines = [self.buy_item(item_id = collectibleItemId, price = price, user_id = self.accounts[o]["id"], creator_id = creator, product_id = productid_data, cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = i.get("id"), method="cheap", collectibleItemInstanceId=collectibleItemInstanceId, location="cheap_price_snipe", url="https://apis.roblox.com/marketplace-sales/v1/item/{item_id}/purchase-resale") for o in (range(1, len(self.accounts)) if len(self.accounts) > 1 else self.accounts)]
+                             coroutines = [self.buy_item(item_id = collectibleItemId, price = price, user_id = self.accounts[o]["id"], creator_id = creator, product_id = productid_data, cookie = self.accounts[o]["cookie"], x_token = self.accounts[o]["xcsrf_token"], raw_id = i.get("id"), method="cheap", collectibleItemInstanceId=collectibleItemInstanceId, location="cheap_price_snipe", url=f"https://apis.roblox.com/marketplace-sales/v1/item/{i.get('id')}/purchase-resale") for o in (range(1, len(self.accounts)) if len(self.accounts) > 1 else self.accounts)]
                          self.task = "Item Buyer"
                          await asyncio.gather(*coroutines)
                          self.task = "Item Scraper & Searcher"
