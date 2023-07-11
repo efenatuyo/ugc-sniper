@@ -1,6 +1,6 @@
 # ugc-sniper
 
-## sniper discontinued
+## sniper discontinued / moved to https://github.com/efenatuyo/xolo-sniper-recode
 
 the best one out there (yet again)
 
